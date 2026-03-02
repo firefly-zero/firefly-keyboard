@@ -5,6 +5,8 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::vec;
 
+use firefly_rust::math::abs;
+use firefly_rust::math::sqrt;
 use firefly_rust::*;
 
 
@@ -56,7 +58,7 @@ struct Board {
 }
 
 impl Board {
-    fn draw(&self, height: i32, font: &Font) {
+    fn draw(&self, height: i32, font: &Font, xsel: Option<u32>, ysel: Option<u32>) {
         let cell_height = height / (self.rows.len() - 1) as i32;
         let board_height = HEIGHT - (cell_height * (self.rows.len() - 1) as i32);
 
@@ -84,7 +86,7 @@ impl Board {
             );
         }
 
-        for (idx, row) in self.rows.iter().rev().enumerate() {
+        for (row_idx, row) in self.rows.iter().rev().enumerate() { // draw from bottom up
             let mut this_row_cells = 0;
 
             for key in row.keys.iter() {
@@ -94,8 +96,9 @@ impl Board {
             let cell_width = WIDTH as u8 / this_row_cells;
 
             let mut current_x: u32 = 0;
+            let mut top_y: i32 = 0;
 
-            for key in row.keys.iter() {
+            for (col_idx, key) in row.keys.iter().enumerate() {
                 let text = match key.r#type {
                     KeyType::Char(c) => {
                         &c.to_string()
@@ -111,14 +114,36 @@ impl Board {
                     current_x + (((cell_width * key.cells) as u32 / 2) - (font.line_width(text) / 2))
                 ) as i32 + 1;
 
+                let mut last_x = current_x as i32;
+                let mut last_y = HEIGHT - (cell_height * (row_idx + 1) as i32);
 
                 current_x += (cell_width * key.cells) as u32;
+                top_y = HEIGHT - (cell_height * row_idx as i32);
 
-                let top_y = HEIGHT - (cell_height * idx as i32);
+                if let Some(c) = xsel && let Some(r) = ysel {
+                    if self.rows.len() - row_idx - 1 == r as usize && col_idx == c as usize {
+                        let mut x_modifier = 0;
+                        let mut y_modifier = 0;
+
+                        if last_x != 0 {
+                            x_modifier += 1
+                        }
+
+                        if last_y != 0 {
+                            y_modifier += 1
+                        }
+                        
+                        draw_rect(
+                            Point { x: last_x + x_modifier + 1, y: last_y + y_modifier + 1 },
+                            Size { width: (cell_width * key.cells) as i32 - 2 - x_modifier, height: cell_height - 2 - y_modifier },
+                            Style::solid(Color::Yellow)
+                        );
+                    }
+                }
 
                 draw_line(
                     Point { x: current_x as i32, y: top_y },
-                    Point { x: current_x as i32, y: HEIGHT - (cell_height * ((idx as i32) + 1)) },
+                    Point { x: current_x as i32, y: HEIGHT - (cell_height * ((row_idx as i32) + 1)) },
                     LineStyle {
                         color: Color::Black,
                         width: 1
@@ -188,7 +213,9 @@ pub struct LuxboardLiteOptions {
 pub struct LuxboardLite {
     is_open_state: bool,
     board: Board,
-    height: u32
+    height: u32,
+    xsel: Option<u32>,
+    ysel: Option<u32>
 }
 
 impl LuxboardLite {
@@ -196,11 +223,49 @@ impl LuxboardLite {
         LuxboardLite {
             board: options.layout.as_board(),
             height: options.height,
-            is_open_state: false    
+            is_open_state: false,
+            xsel: None,
+            ysel: None
         }
     }
 
     pub fn update(&mut self) -> LuxboardLiteState {
+        let pad = read_pad(Peer::COMBINED);
+        if let Some(pad) = pad {
+            let u = pad.azimuth().cos() / pad.radius();
+            let v = pad.azimuth().sin() / pad.radius();
+
+            let u2: f32 = u * u;
+            let v2: f32 = v * v;
+            let twosqrt2: f32 = 2.0 * sqrt(2.0);
+            let subtermx: f32 = 2.0 + u2 - v2;
+            let subtermy: f32 = 2.0 - u2 + v2;
+
+            let termx1 = abs(subtermx + u * twosqrt2);
+            let termx2 = abs(subtermx - u * twosqrt2);
+            let termy1 = abs(subtermy + v * twosqrt2);
+            let termy2 = abs(subtermy - v * twosqrt2);
+
+            let x = 0.5 * sqrt(termx1) - 0.5 * sqrt(termx2);
+            let y = 0.5 * sqrt(termy1) - 0.5 * sqrt(termy2);
+
+            // incredibly sorry for this magic number, but it does indeed work-
+            let x = x * 100.0 * 8.892360466414977;
+            let y = y * 100.0 * 8.892360466414977;
+
+            let x = (x + 1.0) / 2.0;
+            let y = (y - 1.0).abs() / 2.0;
+
+            let y = (y * self.board.rows.len() as f32 - 1.0) as u32;
+            let x = (x * self.board.rows.get(y as usize).unwrap().keys.len() as f32 - 1.0) as u32;
+
+            // self.xsel = Some(x);
+            // self.ysel = Some(y);
+        } else {
+            self.xsel = None;
+            self.ysel = None;
+        }
+
         let ret_state = LuxboardLiteState::Closed;
 
         if self.is_open_state {
@@ -211,7 +276,7 @@ impl LuxboardLite {
     }
 
     pub fn render(&mut self, font: &Font) {
-        self.board.draw(self.height as i32, font);
+        self.board.draw(self.height as i32, font, self.xsel, self.ysel);
     }
 
     pub fn open(&mut self) {
