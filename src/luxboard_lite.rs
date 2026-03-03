@@ -60,7 +60,7 @@ impl KeyRow {}
 struct Board {
     rows: Vec<KeyRow>,
     shifted_rows: Vec<KeyRow>,
-    shifted: bool
+    shifted: bool,
 }
 
 impl Board {
@@ -97,20 +97,30 @@ impl Board {
         );
     }
 
-    fn draw(
-        &self,
-        height: i32,
-        font: &Font,
-        xsel: Option<u32>,
-        ysel: Option<u32>
-    ) {
+    fn draw(&self, luxboard: &LuxboardLite, font: &Font) {
         let rows = match self.shifted {
             true => &self.shifted_rows,
-            false => &self.rows
+            false => &self.rows,
         };
 
-        let cell_height = height / (rows.len() - 1) as i32;
-        let board_height = HEIGHT - (cell_height * (rows.len() - 1) as i32);
+        let cell_height = luxboard.height as i32 / (rows.len() - 1) as i32;
+        let board_height = HEIGHT - (cell_height * (rows.len()) as i32);
+
+        draw_rect(
+            Point {
+                x: 0,
+                y: board_height,
+            },
+            Size {
+                width: WIDTH,
+                height: HEIGHT - board_height,
+            },
+            Style {
+                fill_color: luxboard.bg_color,
+                stroke_color: Color::None,
+                stroke_width: 1,
+            },
+        );
 
         draw_line(
             Point {
@@ -122,7 +132,7 @@ impl Board {
                 y: board_height,
             },
             LineStyle {
-                color: Color::Black,
+                color: luxboard.line_color,
                 width: 1,
             },
         );
@@ -139,7 +149,7 @@ impl Board {
                     y: cell_y,
                 },
                 LineStyle {
-                    color: Color::Black,
+                    color: luxboard.line_color,
                     width: 1,
                 },
             );
@@ -188,14 +198,12 @@ impl Board {
                         key.cells as u32,
                         last_x,
                         last_y,
-                        Color::Cyan,
+                        luxboard.locked_key_color,
                     );
                 }
 
-                if let Some(c) = xsel
-                    && let Some(r) = ysel
-                    && self.rows.len() - row_idx - 1 == r as usize
-                    && col_idx == c as usize
+                if self.rows.len() - row_idx - 1 == luxboard.ysel as usize
+                    && col_idx == luxboard.xsel as usize
                 {
                     self.draw_highlight_in_key(
                         cell_width as u32,
@@ -203,7 +211,7 @@ impl Board {
                         key.cells as u32,
                         last_x,
                         last_y,
-                        Color::Yellow,
+                        luxboard.highlight_color,
                     );
                 }
 
@@ -217,7 +225,7 @@ impl Board {
                         y: HEIGHT - (cell_height * ((row_idx as i32) + 1)),
                     },
                     LineStyle {
-                        color: Color::Black,
+                        color: luxboard.line_color,
                         width: 1,
                     },
                 );
@@ -229,7 +237,7 @@ impl Board {
                         x: text_draw_x,
                         y: top_y - (font.char_height() / 2) as i32 + 1,
                     },
-                    Color::Black,
+                    luxboard.text_color,
                 );
             }
         }
@@ -238,7 +246,7 @@ impl Board {
     fn get(&self, x: usize, y: usize) -> Option<&Key> {
         let rows = match self.shifted {
             true => &self.shifted_rows,
-            false => &self.rows
+            false => &self.rows,
         };
 
         let row = rows.get(y)?;
@@ -254,7 +262,9 @@ pub enum LuxboardLiteState {
     JustCancelled,
 }
 
+#[derive(Default)]
 pub enum LuxboardLiteLayout {
+    #[default]
     Qwertyish,
 }
 
@@ -262,7 +272,7 @@ impl LuxboardLiteLayout {
     fn as_board(&self) -> Board {
         Board {
             rows: vec![
-                vec!['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].into(),
+                vec!['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].into(),
                 vec!['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].into(),
                 vec!['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', '|'].into(),
                 vec!['z', 'x', 'c', 'v', 'b', 'n', 'm', '.', ',', '?'].into(),
@@ -343,14 +353,20 @@ impl LuxboardLiteLayout {
                     ],
                 },
             ],
-            shifted: false
+            shifted: false,
         }
     }
 }
 
+#[derive(Default)]
 pub struct LuxboardLiteOptions {
     pub layout: LuxboardLiteLayout,
     pub height: u32,
+    pub line_color: Option<Color>,
+    pub text_color: Option<Color>,
+    pub highlight_color: Option<Color>,
+    pub locked_key_color: Option<Color>,
+    pub bg_color: Option<Color>,
 }
 
 pub struct LuxboardLite {
@@ -362,7 +378,11 @@ pub struct LuxboardLite {
     last_pad: Option<Pad>,
     last_buttons: Buttons,
     pub text: String,
-    shift_enabled: bool,
+    pub line_color: Color,
+    pub text_color: Color,
+    pub highlight_color: Color,
+    pub locked_key_color: Color,
+    pub bg_color: Color,
 }
 
 impl LuxboardLite {
@@ -376,7 +396,11 @@ impl LuxboardLite {
             last_pad: read_pad(Peer::COMBINED),
             last_buttons: read_buttons(Peer::COMBINED),
             text: String::default(),
-            shift_enabled: false,
+            line_color: options.line_color.unwrap_or(Color::Black),
+            text_color: options.text_color.unwrap_or(Color::Black),
+            highlight_color: options.highlight_color.unwrap_or(Color::Yellow),
+            locked_key_color: options.locked_key_color.unwrap_or(Color::Cyan),
+            bg_color: options.bg_color.unwrap_or(Color::White),
         }
     }
 
@@ -505,14 +529,9 @@ impl LuxboardLite {
         ret_state
     }
 
-    pub fn render(&mut self, font: &Font) {
+    pub fn render(&self, font: &Font) {
         if self.is_open_state {
-            self.board.draw(
-                self.height as i32,
-                font,
-                Some(self.xsel),
-                Some(self.ysel)
-            );
+            self.board.draw(self, font);
         }
     }
 

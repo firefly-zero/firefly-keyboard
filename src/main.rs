@@ -28,6 +28,12 @@ extern "C" fn boot() {
         luxboard_lite: LuxboardLite::new(LuxboardLiteOptions {
             layout: luxboard_lite::LuxboardLiteLayout::Qwertyish,
             height: 75,
+            bg_color: Some(Color::Black),
+            text_color: Some(Color::White),
+            line_color: Some(Color::Gray),
+            highlight_color: Some(Color::Blue),
+            locked_key_color: Some(Color::Purple),
+            ..Default::default()
         }),
         buttons: read_buttons(Peer::COMBINED),
     };
