@@ -12,7 +12,8 @@ static mut STATE: OnceCell<State> = OnceCell::new();
 
 struct State {
     font: FileBuf,
-    luxboard_lite: LuxboardLite
+    luxboard_lite: LuxboardLite,
+    buttons: Buttons,
 }
 
 fn get_state() -> &'static mut State {
@@ -26,8 +27,9 @@ extern "C" fn boot() {
         font: load_file_buf("font").expect("could not load font!"),
         luxboard_lite: LuxboardLite::new(LuxboardLiteOptions {
             layout: luxboard_lite::LuxboardLiteLayout::Qwertyish,
-            height: 70
-        })
+            height: 75,
+        }),
+        buttons: read_buttons(Peer::COMBINED),
     };
 
     #[allow(static_mut_refs)]
@@ -38,7 +40,18 @@ extern "C" fn boot() {
 extern "C" fn update() {
     let state = get_state();
 
-    state.luxboard_lite.update();
+    let buttons = read_buttons(Peer::COMBINED);
+    let pressed = buttons.just_pressed(&state.buttons);
+
+    if state.luxboard_lite.is_open() {
+        state.luxboard_lite.update();
+    } else {
+        if pressed.e {
+            state.luxboard_lite.open();
+        }
+    }
+
+    state.buttons = buttons;
 }
 
 #[unsafe(no_mangle)]
@@ -46,6 +59,18 @@ extern "C" fn render() {
     let state = get_state();
 
     clear_screen(Color::White);
-    
-    state.luxboard_lite.render(&state.font.as_font());
+
+    if state.luxboard_lite.is_open() {
+        state.luxboard_lite.render(&state.font.as_font());
+
+        let mut tmp = state.luxboard_lite.text.clone();
+        tmp.push('_');
+
+        draw_text(
+            &tmp,
+            &state.font.as_font(),
+            Point { x: 4, y: 8 },
+            Color::Black,
+        );
+    }
 }
