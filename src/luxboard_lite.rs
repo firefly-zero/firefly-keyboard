@@ -59,6 +59,8 @@ impl KeyRow {}
 
 struct Board {
     rows: Vec<KeyRow>,
+    shifted_rows: Vec<KeyRow>,
+    shifted: bool
 }
 
 impl Board {
@@ -100,11 +102,15 @@ impl Board {
         height: i32,
         font: &Font,
         xsel: Option<u32>,
-        ysel: Option<u32>,
-        shift_enabled: bool,
+        ysel: Option<u32>
     ) {
-        let cell_height = height / (self.rows.len() - 1) as i32;
-        let board_height = HEIGHT - (cell_height * (self.rows.len() - 1) as i32);
+        let rows = match self.shifted {
+            true => &self.shifted_rows,
+            false => &self.rows
+        };
+
+        let cell_height = height / (rows.len() - 1) as i32;
+        let board_height = HEIGHT - (cell_height * (rows.len() - 1) as i32);
 
         draw_line(
             Point {
@@ -121,7 +127,7 @@ impl Board {
             },
         );
 
-        for i in 0..self.rows.len() + 1 {
+        for i in 0..rows.len() + 1 {
             let i = i as i32;
 
             let cell_y = HEIGHT - (i * cell_height);
@@ -139,7 +145,7 @@ impl Board {
             );
         }
 
-        for (row_idx, row) in self.rows.iter().rev().enumerate() {
+        for (row_idx, row) in rows.iter().rev().enumerate() {
             // draw from bottom up
             let mut this_row_cells = 0;
 
@@ -174,7 +180,7 @@ impl Board {
                 top_y = HEIGHT - (cell_height * row_idx as i32);
 
                 if let KeyType::Shift = key.r#type
-                    && shift_enabled
+                    && self.shifted
                 {
                     self.draw_highlight_in_key(
                         cell_width as u32,
@@ -230,7 +236,12 @@ impl Board {
     }
 
     fn get(&self, x: usize, y: usize) -> Option<&Key> {
-        let row = self.rows.get(y)?;
+        let rows = match self.shifted {
+            true => &self.shifted_rows,
+            false => &self.rows
+        };
+
+        let row = rows.get(y)?;
         row.keys.get(x)
     }
 }
@@ -279,17 +290,60 @@ impl LuxboardLiteLayout {
                         ':'.into(),
                         '\''.into(),
                         '`'.into(),
+                        '='.into(),
                         Key {
                             cells: 2,
                             r#type: KeyType::Cancel,
                         },
                         Key {
-                            cells: 2,
+                            cells: 1,
                             r#type: KeyType::Ok,
                         },
                     ],
                 },
             ],
+            shifted_rows: vec![
+                vec!['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'].into(),
+                vec!['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'].into(),
+                vec!['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '\\'].into(),
+                vec!['Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '/'].into(),
+                KeyRow {
+                    keys: vec![
+                        Key {
+                            cells: 2,
+                            r#type: KeyType::Shift,
+                        },
+                        Key {
+                            cells: 6,
+                            r#type: KeyType::Space,
+                        },
+                        Key {
+                            cells: 2,
+                            r#type: KeyType::Backspace,
+                        },
+                    ],
+                },
+                KeyRow {
+                    keys: vec![
+                        '{'.into(),
+                        '}'.into(),
+                        '_'.into(),
+                        ';'.into(),
+                        '"'.into(),
+                        '~'.into(),
+                        '+'.into(),
+                        Key {
+                            cells: 2,
+                            r#type: KeyType::Cancel,
+                        },
+                        Key {
+                            cells: 1,
+                            r#type: KeyType::Ok,
+                        },
+                    ],
+                },
+            ],
+            shifted: false
         }
     }
 }
@@ -418,7 +472,7 @@ impl LuxboardLite {
                         self.text.pop();
                         ret_state = LuxboardLiteState::TextChanged(self.text.clone());
                     }
-                    KeyType::Shift => self.shift_enabled = !self.shift_enabled,
+                    KeyType::Shift => self.board.shifted = !self.board.shifted,
                     KeyType::Ok => {
                         ret_state = LuxboardLiteState::JustClosed(self.text.clone());
                     }
@@ -457,8 +511,7 @@ impl LuxboardLite {
                 self.height as i32,
                 font,
                 Some(self.xsel),
-                Some(self.ysel),
-                self.shift_enabled,
+                Some(self.ysel)
             );
         }
     }
