@@ -7,16 +7,6 @@ use alloc::vec::Vec;
 
 use firefly_rust::*;
 
-fn pow(n: f32, pow: i32) -> f32 {
-    let mut tmp = n;
-
-    for _i in 0..pow {
-        tmp *= n;
-    }
-
-    tmp
-}
-
 enum KeyType {
     Char(char),
     Space,
@@ -544,5 +534,18 @@ impl LuxboardLite {
 
     pub fn is_open(&mut self) -> bool {
         self.is_open_state
+    }
+
+    pub fn clear(&mut self) {
+        self.text.clear();
+    }
+
+    pub fn set_text(&mut self, text: &str) {
+        self.text.clear();
+        self.text.push_str(text);
+    }
+
+    pub fn set_layout(&mut self, layout: LuxboardLiteLayout) {
+        self.board = layout.as_board();
     }
 }
