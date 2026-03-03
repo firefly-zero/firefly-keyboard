@@ -5,10 +5,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::vec;
 
-use firefly_rust::math::abs;
-use firefly_rust::math::sqrt;
 use firefly_rust::*;
-
 
 fn pow(n: f32, pow: i32) -> f32 {
     let mut tmp = n;
@@ -114,8 +111,8 @@ impl Board {
                     current_x + (((cell_width * key.cells) as u32 / 2) - (font.line_width(text) / 2))
                 ) as i32 + 1;
 
-                let mut last_x = current_x as i32;
-                let mut last_y = HEIGHT - (cell_height * (row_idx + 1) as i32);
+                let last_x = current_x as i32;
+                let last_y = HEIGHT - (cell_height * (row_idx + 1) as i32);
 
                 current_x += (cell_width * key.cells) as u32;
                 top_y = HEIGHT - (cell_height * row_idx as i32);
@@ -155,12 +152,17 @@ impl Board {
                     font,
                     Point {
                         x: text_draw_x,
-                        y: top_y - (font.char_height() / 2) as i32 + 2
+                        y: top_y - (font.char_height() / 2) as i32 + 1
                     },
                     Color::Black
                 );
             }
         }
+    }
+
+    fn get(&self, x: usize, y: usize) -> Option<&Key> {
+        let row = self.rows.get(y)?;
+        row.keys.get(x)
     }
 }
 
@@ -169,7 +171,8 @@ pub enum LuxboardLiteState {
     Open,
     Closed,
     TextChanged(String),
-    JustClosed(String)
+    JustClosed(String),
+    JustCancelled
 }
 
 
@@ -214,8 +217,11 @@ pub struct LuxboardLite {
     is_open_state: bool,
     board: Board,
     height: u32,
-    xsel: Option<u32>,
-    ysel: Option<u32>
+    xsel: u32,
+    ysel: u32,
+    last_pad: Option<Pad>,
+    last_buttons: Buttons,
+    text: String
 }
 
 impl LuxboardLite {
@@ -224,49 +230,102 @@ impl LuxboardLite {
             board: options.layout.as_board(),
             height: options.height,
             is_open_state: false,
-            xsel: None,
-            ysel: None
+            xsel: 0,
+            ysel: 0,
+            last_pad: read_pad(Peer::COMBINED),
+            last_buttons: read_buttons(Peer::COMBINED),
+            text: String::default()
         }
     }
 
     pub fn update(&mut self) -> LuxboardLiteState {
-        let pad = read_pad(Peer::COMBINED);
-        if let Some(pad) = pad {
-            let u = pad.azimuth().cos() / pad.radius();
-            let v = pad.azimuth().sin() / pad.radius();
+        let mut ret_state = LuxboardLiteState::Open;
 
-            let u2: f32 = u * u;
-            let v2: f32 = v * v;
-            let twosqrt2: f32 = 2.0 * sqrt(2.0);
-            let subtermx: f32 = 2.0 + u2 - v2;
-            let subtermy: f32 = 2.0 - u2 + v2;
-
-            let termx1 = abs(subtermx + u * twosqrt2);
-            let termx2 = abs(subtermx - u * twosqrt2);
-            let termy1 = abs(subtermy + v * twosqrt2);
-            let termy2 = abs(subtermy - v * twosqrt2);
-
-            let x = 0.5 * sqrt(termx1) - 0.5 * sqrt(termx2);
-            let y = 0.5 * sqrt(termy1) - 0.5 * sqrt(termy2);
-
-            // incredibly sorry for this magic number, but it does indeed work-
-            let x = x * 100.0 * 8.892360466414977;
-            let y = y * 100.0 * 8.892360466414977;
-
-            let x = (x + 1.0) / 2.0;
-            let y = (y - 1.0).abs() / 2.0;
-
-            let y = (y * self.board.rows.len() as f32 - 1.0) as u32;
-            let x = (x * self.board.rows.get(y as usize).unwrap().keys.len() as f32 - 1.0) as u32;
-
-            // self.xsel = Some(x);
-            // self.ysel = Some(y);
-        } else {
-            self.xsel = None;
-            self.ysel = None;
+        if !self.is_open_state {
+            return LuxboardLiteState::Closed;
         }
 
-        let ret_state = LuxboardLiteState::Closed;
+        let buttons = read_buttons(Peer::COMBINED);
+        let pressed = buttons.just_pressed(&self.last_buttons);
+
+        let pad = read_pad(Peer::COMBINED);
+
+        if let Some(pad) = pad {
+            let dpad = pad.as_dpad8();
+            let pressed = dpad.just_pressed(&self.last_pad.unwrap_or(Pad::default()).as_dpad8());
+
+            let last_row_len = self.board.rows.get(self.ysel as usize).unwrap().keys.len() as i32 - 1;
+
+            let mut xchg: i32 = 0;
+            let mut ychg: i32 = 0;
+
+            if pressed.up {
+                ychg -= 1;
+            } else if pressed.down {
+                ychg += 1;
+            }
+
+            if pressed.right {
+                xchg += 1;
+            } else if pressed.left {
+                xchg -= 1;
+            }
+
+            if (self.ysel as i32) + ychg > self.board.rows.len() as i32 - 1 {
+                self.ysel = self.board.rows.len() as u32 - 1;
+            } else if (self.ysel as i32) + ychg < 0 {
+                self.ysel = 0
+            } else {
+                self.ysel += ychg as u32;
+            }
+
+            let row_len = self.board.rows.get(self.ysel as usize).unwrap().keys.len() as i32 - 1;
+
+            if last_row_len > row_len {
+                let mut cells = Vec::with_capacity(row_len as usize);
+
+                for (idx, keys) in self.board.rows.get(self.ysel as usize).unwrap().keys.iter().enumerate() {
+                    for _ in 0..keys.cells {
+                        cells.push(idx as u32);
+                    }
+                }
+
+                self.xsel = *cells.get(self.xsel as usize).unwrap();
+            } else if last_row_len < row_len {
+                // TODO: better logic
+
+                self.xsel += 1;
+            }
+
+            if (self.xsel as i32) + xchg > row_len {
+                self.xsel = row_len as u32;
+            } else if (self.xsel as i32) + xchg < 0 {
+                self.xsel = 0
+            } else {
+                self.xsel += xchg as u32;
+            }
+        }
+
+        if pressed.e {
+            if let Some(key) = self.board.get(self.xsel as usize, self.ysel as usize) {
+                match key.r#type {
+                    KeyType::Char(c) => {
+                        self.text.push(c);
+                        ret_state = LuxboardLiteState::TextChanged(self.text.clone());
+                    },
+                    KeyType::Ok => {
+                        ret_state = LuxboardLiteState::JustClosed(self.text.clone());
+                    },
+                    KeyType::Cancel => {
+                        ret_state = LuxboardLiteState::JustCancelled;
+                    },
+                    _ => {}
+                }
+            }
+        }
+
+        self.last_pad = pad;
+        self.last_buttons = buttons;
 
         if self.is_open_state {
             return ret_state;
@@ -276,7 +335,7 @@ impl LuxboardLite {
     }
 
     pub fn render(&mut self, font: &Font) {
-        self.board.draw(self.height as i32, font, self.xsel, self.ysel);
+        self.board.draw(self.height as i32, font, Some(self.xsel), Some(self.ysel));
     }
 
     pub fn open(&mut self) {
