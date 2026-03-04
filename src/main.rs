@@ -3,7 +3,7 @@
 
 extern crate alloc;
 
-use alloc::{format, string::String};
+use alloc::format;
 use core::cell::OnceCell;
 
 use firefly_rust::*;
@@ -31,7 +31,6 @@ extern "C" fn boot() {
         font: load_file_buf("font").expect("could not load font!"),
         luxboard_lite: LuxboardLite::new(LuxboardLiteOptions {
             layout: luxboard_lite::LuxboardLiteLayout::Qwertyish,
-            height: 75,
             bg_color: Some(Color::DarkGray),
             text_color: Some(Color::White),
             line_color: Some(Color::Gray),

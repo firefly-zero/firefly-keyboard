@@ -246,24 +246,35 @@ impl Board {
     }
 }
 
+/// Method of providing input from the touchpad to luxboard-lite.
 #[derive(Default)]
 pub enum LuxboardLiteInputMethod {
     #[default]
+    /// Treat the touchpad as an 8-way d-pad.
     Dpad,
+    /// Map a square area of the touchpad to each key on the keyboard.
     SquareMap,
 }
 
+/// Current state of the luxboard-lite instance.
 pub enum LuxboardLiteState {
-    Open,
-    Closed,
+    /// Text was changed, returns the new text.
     TextChanged(String),
+    /// Default state when the keyboard is open.
+    Open,
+    /// default state when the keyboard is closed.
+    Closed,
+    /// Luxboard was closed this update cycle. Returns the keyboard's text.
     JustClosed(String),
+    /// Input was just cancelled by the user.
     JustCancelled,
 }
 
+/// Layout of the keyboard.
 #[derive(Default)]
 pub enum LuxboardLiteLayout {
     #[default]
+    /// A QWERTY-similar layout.
     Qwertyish,
 }
 
@@ -357,10 +368,12 @@ impl LuxboardLiteLayout {
     }
 }
 
+/// Luxboard initialization options.
+/// See [LuxboardLite] for variable definitions.
 #[derive(Default)]
 pub struct LuxboardLiteOptions {
     pub layout: LuxboardLiteLayout,
-    pub height: u32,
+    pub height: Option<u32>,
     pub line_color: Option<Color>,
     pub text_color: Option<Color>,
     pub highlight_color: Option<Color>,
@@ -370,29 +383,42 @@ pub struct LuxboardLiteOptions {
     pub wrap_around: Option<bool>
 }
 
+/// LuxboardLite virtual keyboard.
+///
+/// Please use [`new()`](fn@Self::new) or [`default()`](fn@Self::default) to create a new instance!
 pub struct LuxboardLite {
     is_open_state: bool,
     board: Board,
+    /// Height of the keyboard. Defaults to `75`.
     pub height: u32,
     xsel: u32,
     ysel: u32,
     last_pad: Option<Pad>,
     last_buttons: Buttons,
+    /// Current keyboard text.
     pub text: String,
+    /// Color of the lines separating keyboard keys. Defaults to [`Color::Black`].
     pub line_color: Color,
+    /// Text color. Defaults to [`Color::Black`].
     pub text_color: Color,
+    /// Highlighted key background color. Defaults to [`Color::Yellow`].
     pub highlight_color: Color,
+    /// Locked key background color (e.g. SHIFT is locked). Defaults to [`Color::Cyan`].
     pub locked_key_color: Color,
+    /// Keyboard background color. Defaults to [`Color::White`].
     pub bg_color: Color,
+    /// Method of recieving input.
     pub input_method: LuxboardLiteInputMethod,
+    /// Input into a keyboard edge will wrap around to the other side. Defaults to `true`.
     pub wrap_around: bool
 }
 
 impl LuxboardLite {
+    /// Creates a new LuxboardLite instance.
     pub fn new(options: LuxboardLiteOptions) -> LuxboardLite {
         LuxboardLite {
             board: options.layout.as_board(),
-            height: options.height,
+            height: options.height.unwrap_or(75),
             is_open_state: false,
             xsel: 0,
             ysel: 0,
@@ -409,6 +435,7 @@ impl LuxboardLite {
         }
     }
 
+    /// Updates keyboard input.
     pub fn update(&mut self) -> LuxboardLiteState {
         let mut ret_state = LuxboardLiteState::Open;
 
@@ -420,10 +447,6 @@ impl LuxboardLite {
         let pressed = buttons.just_pressed(&self.last_buttons);
 
         let pad = read_pad(Peer::COMBINED);
-
-        // TODO: improve user input
-        //
-        // i was thinking swiping could be better, or the circle thing if you can get it working-
 
         if let Some(pad) = pad {
             match self.input_method {
@@ -598,12 +621,14 @@ impl LuxboardLite {
         ret_state
     }
 
+    /// Renders the keyboard.
     pub fn render(&self, font: &Font) {
         if self.is_open_state {
             self.board.draw(self, font);
         }
     }
 
+    /// Opens the keyboard.
     pub fn open(&mut self) {
         self.is_open_state = true;
         self.last_buttons = read_buttons(Peer::COMBINED);
@@ -611,20 +636,30 @@ impl LuxboardLite {
         self.ysel = 0;
     }
 
+    /// Returns if the keyboard is currently open.
     pub fn is_open(&mut self) -> bool {
         self.is_open_state
     }
 
+    /// Clears the keyboard's text.
     pub fn clear(&mut self) {
         self.text.clear();
     }
 
+    /// Sets the keyboard's text.
     pub fn set_text(&mut self, text: &str) {
         self.text.clear();
         self.text.push_str(text);
     }
 
+    /// Sets the keyboard layout.
     pub fn set_layout(&mut self, layout: LuxboardLiteLayout) {
         self.board = layout.as_board();
+    }
+}
+
+impl Default for LuxboardLite {
+    fn default() -> Self {
+        LuxboardLite::new(LuxboardLiteOptions::default())
     }
 }
