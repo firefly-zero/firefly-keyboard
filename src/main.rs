@@ -1,5 +1,9 @@
 #![no_std]
 #![no_main]
+
+extern crate alloc;
+
+use alloc::{format, string::String};
 use core::cell::OnceCell;
 
 use firefly_rust::*;
@@ -33,7 +37,7 @@ extern "C" fn boot() {
             line_color: Some(Color::Gray),
             highlight_color: Some(Color::Blue),
             locked_key_color: Some(Color::Purple),
-            input_method: LuxboardLiteInputMethod::Map,
+            input_method: LuxboardLiteInputMethod::SquareMap,
             ..Default::default()
         }),
         buttons: read_buttons(Peer::COMBINED),
@@ -55,6 +59,12 @@ extern "C" fn update() {
     } else {
         if pressed.e {
             state.luxboard_lite.open();
+        } else if pressed.s {
+            if let LuxboardLiteInputMethod::SquareMap = state.luxboard_lite.input_method {
+                state.luxboard_lite.input_method = LuxboardLiteInputMethod::Dpad;
+            } else {
+                state.luxboard_lite.input_method = LuxboardLiteInputMethod::SquareMap;
+            }
         }
     }
 
@@ -82,8 +92,13 @@ extern "C" fn render() {
     } else {
         clear_screen(Color::Black);
 
+        let input_method = match state.luxboard_lite.input_method {
+            LuxboardLiteInputMethod::Dpad => "d-pad",
+            LuxboardLiteInputMethod::SquareMap => "square map"
+        };
+
         draw_text(
-            "press E to start luxboard-lite",
+            format!("press S to change touchpad input type\n(current {})\n\npress E to open luxboard lite", input_method).as_str(),
             &state.font.as_font(),
             Point { x: 4, y: 8 },
             Color::White
