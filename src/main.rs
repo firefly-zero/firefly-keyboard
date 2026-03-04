@@ -98,7 +98,7 @@ extern "C" fn render() {
         };
 
         draw_text(
-            format!("press S to change touchpad input type\n(current {})\n\npress E to open luxboard lite", input_method).as_str(),
+            format!("current text: {}\n\npress S to change touchpad input type\n(current {})\n\npress E to open luxboard lite", state.luxboard_lite.text, input_method).as_str(),
             &state.font.as_font(),
             Point { x: 4, y: 8 },
             Color::White
