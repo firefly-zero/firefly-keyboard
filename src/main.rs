@@ -4,7 +4,7 @@ use core::cell::OnceCell;
 
 use firefly_rust::*;
 
-use crate::luxboard_lite::{LuxboardLite, LuxboardLiteOptions};
+use crate::luxboard_lite::{LuxboardLite, LuxboardLiteInputMethod, LuxboardLiteOptions};
 
 mod luxboard_lite;
 
@@ -28,11 +28,12 @@ extern "C" fn boot() {
         luxboard_lite: LuxboardLite::new(LuxboardLiteOptions {
             layout: luxboard_lite::LuxboardLiteLayout::Qwertyish,
             height: 75,
-            bg_color: Some(Color::Black),
+            bg_color: Some(Color::DarkGray),
             text_color: Some(Color::White),
             line_color: Some(Color::Gray),
             highlight_color: Some(Color::Blue),
             locked_key_color: Some(Color::Purple),
+            input_method: LuxboardLiteInputMethod::Map,
             ..Default::default()
         }),
         buttons: read_buttons(Peer::COMBINED),
@@ -64,9 +65,9 @@ extern "C" fn update() {
 extern "C" fn render() {
     let state = get_state();
 
-    clear_screen(Color::White);
-
     if state.luxboard_lite.is_open() {
+        clear_screen(Color::Black);
+
         state.luxboard_lite.render(&state.font.as_font());
 
         let mut tmp = state.luxboard_lite.text.clone();
@@ -76,7 +77,16 @@ extern "C" fn render() {
             &tmp,
             &state.font.as_font(),
             Point { x: 4, y: 8 },
-            Color::Black,
+            Color::White,
+        );
+    } else {
+        clear_screen(Color::Black);
+
+        draw_text(
+            "press E to start luxboard-lite",
+            &state.font.as_font(),
+            Point { x: 4, y: 8 },
+            Color::White
         );
     }
 }
