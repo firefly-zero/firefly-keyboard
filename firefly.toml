@@ -1,8 +1,0 @@
-author_id = "nanobot567"
-app_id = "luxboard-lite"
-author_name = "Nanobot567"
-app_name = "Luxboard Lite Demo"
-lang = "rust"
-
-[files]
-font = {path = "src/font/eg_6x10.fff"}

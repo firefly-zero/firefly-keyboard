@@ -5,12 +5,8 @@ extern crate alloc;
 
 use alloc::format;
 use core::cell::OnceCell;
-
+use firefly_keyboard::*;
 use firefly_rust::*;
-
-use crate::luxboard_lite::{LuxboardLite, LuxboardLiteInputMethod, LuxboardLiteOptions};
-
-mod luxboard_lite;
 
 static mut STATE: OnceCell<State> = OnceCell::new();
 
@@ -30,7 +26,7 @@ extern "C" fn boot() {
     let state = State {
         font: load_file_buf("font").expect("could not load font!"),
         luxboard_lite: LuxboardLite::new(LuxboardLiteOptions {
-            layout: luxboard_lite::LuxboardLiteLayout::Qwertyish,
+            layout: LuxboardLiteLayout::Qwertyish,
             bg_color: Some(Color::DarkGray),
             text_color: Some(Color::White),
             line_color: Some(Color::Gray),
@@ -93,7 +89,7 @@ extern "C" fn render() {
 
         let input_method = match state.luxboard_lite.input_method {
             LuxboardLiteInputMethod::Dpad => "d-pad",
-            LuxboardLiteInputMethod::SquareMap => "square map"
+            LuxboardLiteInputMethod::SquareMap => "square map",
         };
 
         draw_text(

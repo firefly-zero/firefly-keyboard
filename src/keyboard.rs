@@ -380,7 +380,7 @@ pub struct LuxboardLiteOptions {
     pub locked_key_color: Option<Color>,
     pub bg_color: Option<Color>,
     pub input_method: LuxboardLiteInputMethod,
-    pub wrap_around: Option<bool>
+    pub wrap_around: Option<bool>,
 }
 
 /// LuxboardLite virtual keyboard.
@@ -410,7 +410,7 @@ pub struct LuxboardLite {
     /// Method of recieving input.
     pub input_method: LuxboardLiteInputMethod,
     /// Input into a keyboard edge will wrap around to the other side. Defaults to `true`.
-    pub wrap_around: bool
+    pub wrap_around: bool,
 }
 
 impl LuxboardLite {
@@ -431,7 +431,7 @@ impl LuxboardLite {
             locked_key_color: options.locked_key_color.unwrap_or(Color::Cyan),
             bg_color: options.bg_color.unwrap_or(Color::White),
             input_method: options.input_method,
-            wrap_around: options.wrap_around.unwrap_or(true)
+            wrap_around: options.wrap_around.unwrap_or(true),
         }
     }
 
@@ -530,7 +530,7 @@ impl LuxboardLite {
                     } else {
                         self.xsel += xchg as u32;
                     }
-                },
+                }
                 LuxboardLiteInputMethod::SquareMap => {
                     let sqrt22 = sqrt(2.0) / 2.0;
 
@@ -595,7 +595,6 @@ impl LuxboardLite {
                     KeyType::Cancel => {
                         ret_state = LuxboardLiteState::JustCancelled;
                     }
-                    _ => {}
                 }
             }
         } else if pressed.w {

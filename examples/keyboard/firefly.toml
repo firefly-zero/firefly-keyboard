@@ -1,0 +1,8 @@
+author_id = "demo"
+app_id = "keyboard"
+author_name = "Demo"
+app_name = "Keyboard Demo"
+lang = "rust"
+
+[files]
+font = { path = "eg_6x10.fff" }

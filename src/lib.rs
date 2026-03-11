@@ -4,6 +4,6 @@
 extern crate alloc;
 extern crate firefly_rust;
 
-mod luxboard_lite;
+mod keyboard;
 
-pub use luxboard_lite::*;
+pub use keyboard::*;
