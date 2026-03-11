@@ -178,7 +178,7 @@ impl QwertyLayout {
         );
     }
 
-    pub(crate) fn draw(&self, luxboard: &LuxboardLite, font: &Font) {
+    pub(crate) fn draw(&self, luxboard: &Keyboard, font: &Font) {
         let rows = match self.shifted {
             true => &self.shifted_rows,
             false => &self.rows,

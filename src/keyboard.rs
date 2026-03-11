@@ -7,7 +7,7 @@ use firefly_rust::{Buttons, Color, Font, Pad, Peer, read_buttons, read_pad};
 
 /// Method of providing input from the touchpad to luxboard-lite.
 #[derive(Default)]
-pub enum LuxboardLiteInputMethod {
+pub enum InputMethod {
     #[default]
     /// Treat the touchpad as an 8-way d-pad.
     Dpad,
@@ -16,7 +16,7 @@ pub enum LuxboardLiteInputMethod {
 }
 
 /// Current state of the luxboard-lite instance.
-pub enum LuxboardLiteState {
+pub enum State {
     /// Text was changed, returns the new text.
     TextChanged(String),
     /// Default state when the keyboard is open.
@@ -32,7 +32,7 @@ pub enum LuxboardLiteState {
 /// Luxboard initialization options.
 /// See [LuxboardLite] for variable definitions.
 #[derive(Default)]
-pub struct LuxboardLiteOptions {
+pub struct Options {
     pub layout: QwertyLayout,
     pub height: Option<u32>,
     pub line_color: Option<Color>,
@@ -40,14 +40,14 @@ pub struct LuxboardLiteOptions {
     pub highlight_color: Option<Color>,
     pub locked_key_color: Option<Color>,
     pub bg_color: Option<Color>,
-    pub input_method: LuxboardLiteInputMethod,
+    pub input_method: InputMethod,
     pub wrap_around: Option<bool>,
 }
 
 /// LuxboardLite virtual keyboard.
 ///
 /// Please use [`new()`](fn@Self::new) or [`default()`](fn@Self::default) to create a new instance!
-pub struct LuxboardLite {
+pub struct Keyboard {
     is_open_state: bool,
     board: QwertyLayout,
     /// Height of the keyboard. Defaults to `75`.
@@ -69,15 +69,15 @@ pub struct LuxboardLite {
     /// Keyboard background color. Defaults to [`Color::White`].
     pub bg_color: Color,
     /// Method of recieving input.
-    pub input_method: LuxboardLiteInputMethod,
+    pub input_method: InputMethod,
     /// Input into a keyboard edge will wrap around to the other side. Defaults to `true`.
     pub wrap_around: bool,
 }
 
-impl LuxboardLite {
+impl Keyboard {
     /// Creates a new LuxboardLite instance.
-    pub fn new(options: LuxboardLiteOptions) -> LuxboardLite {
-        LuxboardLite {
+    pub fn new(options: Options) -> Keyboard {
+        Keyboard {
             board: options.layout,
             height: options.height.unwrap_or(75),
             is_open_state: false,
@@ -97,11 +97,11 @@ impl LuxboardLite {
     }
 
     /// Updates keyboard input.
-    pub fn update(&mut self) -> LuxboardLiteState {
-        let mut ret_state = LuxboardLiteState::Open;
+    pub fn update(&mut self) -> State {
+        let mut ret_state = State::Open;
 
         if !self.is_open_state {
-            return LuxboardLiteState::Closed;
+            return State::Closed;
         }
 
         let buttons = read_buttons(Peer::COMBINED);
@@ -111,7 +111,7 @@ impl LuxboardLite {
 
         if let Some(pad) = pad {
             match self.input_method {
-                LuxboardLiteInputMethod::Dpad => {
+                InputMethod::Dpad => {
                     let dpad = pad.as_dpad8();
                     let pressed = dpad.just_pressed(&self.last_pad.unwrap_or_default().as_dpad8());
 
@@ -192,7 +192,7 @@ impl LuxboardLite {
                         self.xsel += xchg as u32;
                     }
                 }
-                LuxboardLiteInputMethod::SquareMap => {
+                InputMethod::SquareMap => {
                     let sqrt22 = sqrt(2.0) / 2.0;
 
                     let x = pad.x as f32 / 1000.0; // to unit circle
@@ -239,32 +239,32 @@ impl LuxboardLite {
                 match key.r#type {
                     KeyType::Char(c) => {
                         self.text.push(c);
-                        ret_state = LuxboardLiteState::TextChanged(self.text.clone());
+                        ret_state = State::TextChanged(self.text.clone());
                     }
                     KeyType::Space => {
                         self.text.push(' ');
-                        ret_state = LuxboardLiteState::TextChanged(self.text.clone());
+                        ret_state = State::TextChanged(self.text.clone());
                     }
                     KeyType::Backspace => {
                         self.text.pop();
-                        ret_state = LuxboardLiteState::TextChanged(self.text.clone());
+                        ret_state = State::TextChanged(self.text.clone());
                     }
                     KeyType::Shift => self.board.shifted = !self.board.shifted,
                     KeyType::Ok => {
-                        ret_state = LuxboardLiteState::JustClosed(self.text.clone());
+                        ret_state = State::JustClosed(self.text.clone());
                     }
                     KeyType::Cancel => {
-                        ret_state = LuxboardLiteState::JustCancelled;
+                        ret_state = State::JustCancelled;
                     }
                 }
             }
         } else if pressed.w {
             if self.text.is_empty() {
                 // NOTE: remove?
-                ret_state = LuxboardLiteState::JustCancelled
+                ret_state = State::JustCancelled
             } else {
                 self.text.pop();
-                ret_state = LuxboardLiteState::TextChanged(self.text.clone())
+                ret_state = State::TextChanged(self.text.clone())
             }
         }
 
@@ -272,9 +272,7 @@ impl LuxboardLite {
         self.last_buttons = buttons;
 
         match ret_state {
-            LuxboardLiteState::JustCancelled | LuxboardLiteState::JustClosed(_) => {
-                self.is_open_state = false
-            }
+            State::JustCancelled | State::JustClosed(_) => self.is_open_state = false,
             _ => {}
         }
 
@@ -311,15 +309,10 @@ impl LuxboardLite {
         self.text.clear();
         self.text.push_str(text);
     }
-
-    /// Sets the keyboard layout.
-    pub fn set_layout(&mut self, layout: QwertyLayout) {
-        self.board = layout;
-    }
 }
 
-impl Default for LuxboardLite {
+impl Default for Keyboard {
     fn default() -> Self {
-        LuxboardLite::new(LuxboardLiteOptions::default())
+        Keyboard::new(Options::default())
     }
 }

@@ -12,7 +12,7 @@ static mut STATE: OnceCell<State> = OnceCell::new();
 
 struct State {
     font: FileBuf,
-    luxboard_lite: LuxboardLite,
+    luxboard_lite: Keyboard,
     buttons: Buttons,
 }
 
@@ -25,14 +25,14 @@ fn get_state() -> &'static mut State {
 extern "C" fn boot() {
     let state = State {
         font: load_file_buf("font").expect("could not load font!"),
-        luxboard_lite: LuxboardLite::new(LuxboardLiteOptions {
-            layout: LuxboardLiteLayout::Qwertyish,
+        luxboard_lite: Keyboard::new(Options {
+            layout: QwertyLayout::new(),
             bg_color: Some(Color::DarkGray),
             text_color: Some(Color::White),
             line_color: Some(Color::Gray),
             highlight_color: Some(Color::Blue),
             locked_key_color: Some(Color::Purple),
-            input_method: LuxboardLiteInputMethod::SquareMap,
+            input_method: InputMethod::SquareMap,
             ..Default::default()
         }),
         buttons: read_buttons(Peer::COMBINED),
@@ -55,10 +55,10 @@ extern "C" fn update() {
         if pressed.e {
             state.luxboard_lite.open();
         } else if pressed.s {
-            if let LuxboardLiteInputMethod::SquareMap = state.luxboard_lite.input_method {
-                state.luxboard_lite.input_method = LuxboardLiteInputMethod::Dpad;
+            if let InputMethod::SquareMap = state.luxboard_lite.input_method {
+                state.luxboard_lite.input_method = InputMethod::Dpad;
             } else {
-                state.luxboard_lite.input_method = LuxboardLiteInputMethod::SquareMap;
+                state.luxboard_lite.input_method = InputMethod::SquareMap;
             }
         }
     }
@@ -88,8 +88,8 @@ extern "C" fn render() {
         clear_screen(Color::Black);
 
         let input_method = match state.luxboard_lite.input_method {
-            LuxboardLiteInputMethod::Dpad => "d-pad",
-            LuxboardLiteInputMethod::SquareMap => "square map",
+            InputMethod::Dpad => "d-pad",
+            InputMethod::SquareMap => "square map",
         };
 
         draw_text(
