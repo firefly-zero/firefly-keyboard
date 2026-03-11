@@ -39,7 +39,6 @@ pub struct Options {
     pub height: Option<u32>,
     pub theme: Option<Theme>,
     pub input_method: InputMethod,
-    pub wrap_around: Option<bool>,
 }
 
 /// LuxboardLite virtual keyboard.
@@ -60,8 +59,6 @@ pub struct Keyboard {
     pub theme: Theme,
     /// Method of recieving input.
     pub input_method: InputMethod,
-    /// Input into a keyboard edge will wrap around to the other side. Defaults to `true`.
-    pub wrap_around: bool,
 }
 
 impl Keyboard {
@@ -80,7 +77,6 @@ impl Keyboard {
                 .theme
                 .unwrap_or_else(|| get_settings(get_me()).theme),
             input_method: options.input_method,
-            wrap_around: options.wrap_around.unwrap_or(true),
         }
     }
 
@@ -122,17 +118,9 @@ impl Keyboard {
                     }
 
                     if (self.ysel as i32) + ychg > self.board.rows.len() as i32 - 1 {
-                        if self.wrap_around {
-                            self.ysel = 0;
-                        } else {
-                            self.ysel = self.board.rows.len() as u32 - 1;
-                        }
+                        self.ysel = 0;
                     } else if (self.ysel as i32) + ychg < 0 {
-                        if self.wrap_around {
-                            self.ysel = self.board.rows.len() as u32 - 1;
-                        } else {
-                            self.ysel = 0
-                        }
+                        self.ysel = self.board.rows.len() as u32 - 1;
                     } else {
                         self.ysel += ychg as u32;
                     }
@@ -165,17 +153,9 @@ impl Keyboard {
                     }
 
                     if (self.xsel as i32) + xchg > row_len {
-                        if self.wrap_around {
-                            self.xsel = 0;
-                        } else {
-                            self.xsel = row_len as u32;
-                        }
+                        self.xsel = 0;
                     } else if (self.xsel as i32) + xchg < 0 {
-                        if self.wrap_around {
-                            self.xsel = row_len as u32;
-                        } else {
-                            self.xsel = 0
-                        }
+                        self.xsel = row_len as u32;
                     } else {
                         self.xsel += xchg as u32;
                     }
