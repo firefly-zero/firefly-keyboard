@@ -224,7 +224,7 @@ impl Keyboard {
 
         if pressed.e {
             if let Some(key) = self.board.get(self.xsel as usize, self.ysel as usize) {
-                match key.r#type {
+                match key.key_type {
                     KeyType::Char(c) => {
                         self.text.push(c);
                         ret_state = State::TextChanged(self.text.clone());

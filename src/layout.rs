@@ -15,14 +15,14 @@ pub(crate) enum KeyType {
 
 pub(crate) struct Key {
     pub cells: u8, // amount of cells it takes up on grid
-    pub r#type: KeyType,
+    pub key_type: KeyType,
 }
 
 impl From<char> for Key {
     fn from(value: char) -> Self {
         Key {
             cells: 1,
-            r#type: KeyType::Char(value),
+            key_type: KeyType::Char(value),
         }
     }
 }
@@ -62,15 +62,15 @@ impl Default for QwertyLayout {
                     keys: vec![
                         Key {
                             cells: 2,
-                            r#type: KeyType::Shift,
+                            key_type: KeyType::Shift,
                         },
                         Key {
                             cells: 6,
-                            r#type: KeyType::Space,
+                            key_type: KeyType::Space,
                         },
                         Key {
                             cells: 2,
-                            r#type: KeyType::Backspace,
+                            key_type: KeyType::Backspace,
                         },
                     ],
                 },
@@ -85,11 +85,11 @@ impl Default for QwertyLayout {
                         '='.into(),
                         Key {
                             cells: 2,
-                            r#type: KeyType::Cancel,
+                            key_type: KeyType::Cancel,
                         },
                         Key {
                             cells: 1,
-                            r#type: KeyType::Ok,
+                            key_type: KeyType::Ok,
                         },
                     ],
                 },
@@ -103,15 +103,15 @@ impl Default for QwertyLayout {
                     keys: vec![
                         Key {
                             cells: 2,
-                            r#type: KeyType::Shift,
+                            key_type: KeyType::Shift,
                         },
                         Key {
                             cells: 6,
-                            r#type: KeyType::Space,
+                            key_type: KeyType::Space,
                         },
                         Key {
                             cells: 2,
-                            r#type: KeyType::Backspace,
+                            key_type: KeyType::Backspace,
                         },
                     ],
                 },
@@ -126,11 +126,11 @@ impl Default for QwertyLayout {
                         '+'.into(),
                         Key {
                             cells: 2,
-                            r#type: KeyType::Cancel,
+                            key_type: KeyType::Cancel,
                         },
                         Key {
                             cells: 1,
-                            r#type: KeyType::Ok,
+                            key_type: KeyType::Ok,
                         },
                     ],
                 },
@@ -251,7 +251,7 @@ impl QwertyLayout {
             let mut top_y;
 
             for (col_idx, key) in row.keys.iter().enumerate() {
-                let text = match key.r#type {
+                let text = match key.key_type {
                     KeyType::Char(c) => &c.to_string(),
                     KeyType::Backspace => "BKSPC",
                     KeyType::Shift => "SHIFT",
@@ -260,10 +260,9 @@ impl QwertyLayout {
                     KeyType::Cancel => "CANCEL",
                 };
 
-                let text_draw_x = (current_x
-                    + (((cell_width * key.cells) as u32 / 2) - (font.line_width(text) / 2)))
-                    as i32
-                    + 1;
+                let half_line = font.line_width_ascii(text) / 2;
+                let text_draw_x =
+                    (current_x + (((cell_width * key.cells) as u32 / 2) - half_line)) as i32 + 1;
 
                 let last_x = current_x as i32;
                 let last_y = HEIGHT - (cell_height * (row_idx + 1) as i32);
@@ -271,7 +270,7 @@ impl QwertyLayout {
                 current_x += (cell_width * key.cells) as u32;
                 top_y = HEIGHT - (cell_height * row_idx as i32);
 
-                if let KeyType::Shift = key.r#type
+                if let KeyType::Shift = key.key_type
                     && self.shifted
                 {
                     self.draw_highlight_in_key(
