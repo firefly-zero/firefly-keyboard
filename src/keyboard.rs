@@ -1,9 +1,12 @@
 use crate::*;
 use alloc::string::String;
 use alloc::vec::Vec;
+use firefly_rust::Theme;
+use firefly_rust::get_me;
+use firefly_rust::get_settings;
 use firefly_rust::math::abs;
 use firefly_rust::math::sqrt;
-use firefly_rust::{Buttons, Color, Font, Pad, Peer, read_buttons, read_pad};
+use firefly_rust::{Buttons, Font, Pad, Peer, read_buttons, read_pad};
 
 /// Method of providing input from the touchpad to luxboard-lite.
 #[derive(Default)]
@@ -30,16 +33,11 @@ pub enum State {
 }
 
 /// Luxboard initialization options.
-/// See [LuxboardLite] for variable definitions.
 #[derive(Default)]
 pub struct Options {
     pub layout: QwertyLayout,
     pub height: Option<u32>,
-    pub line_color: Option<Color>,
-    pub text_color: Option<Color>,
-    pub highlight_color: Option<Color>,
-    pub locked_key_color: Option<Color>,
-    pub bg_color: Option<Color>,
+    pub theme: Option<Theme>,
     pub input_method: InputMethod,
     pub wrap_around: Option<bool>,
 }
@@ -58,16 +56,8 @@ pub struct Keyboard {
     last_buttons: Buttons,
     /// Current keyboard text.
     pub text: String,
-    /// Color of the lines separating keyboard keys. Defaults to [`Color::Black`].
-    pub line_color: Color,
-    /// Text color. Defaults to [`Color::Black`].
-    pub text_color: Color,
-    /// Highlighted key background color. Defaults to [`Color::Yellow`].
-    pub highlight_color: Color,
-    /// Locked key background color (e.g. SHIFT is locked). Defaults to [`Color::Cyan`].
-    pub locked_key_color: Color,
-    /// Keyboard background color. Defaults to [`Color::White`].
-    pub bg_color: Color,
+    /// Colors to use.
+    pub theme: Theme,
     /// Method of recieving input.
     pub input_method: InputMethod,
     /// Input into a keyboard edge will wrap around to the other side. Defaults to `true`.
@@ -86,11 +76,9 @@ impl Keyboard {
             last_pad: read_pad(Peer::COMBINED),
             last_buttons: read_buttons(Peer::COMBINED),
             text: String::default(),
-            line_color: options.line_color.unwrap_or(Color::Black),
-            text_color: options.text_color.unwrap_or(Color::Black),
-            highlight_color: options.highlight_color.unwrap_or(Color::Yellow),
-            locked_key_color: options.locked_key_color.unwrap_or(Color::Cyan),
-            bg_color: options.bg_color.unwrap_or(Color::White),
+            theme: options
+                .theme
+                .unwrap_or_else(|| get_settings(get_me()).theme),
             input_method: options.input_method,
             wrap_around: options.wrap_around.unwrap_or(true),
         }

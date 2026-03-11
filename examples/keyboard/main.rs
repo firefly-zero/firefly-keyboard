@@ -27,11 +27,6 @@ extern "C" fn boot() {
         font: load_file_buf("font").expect("could not load font!"),
         luxboard_lite: Keyboard::new(Options {
             layout: QwertyLayout::new(),
-            bg_color: Some(Color::DarkGray),
-            text_color: Some(Color::White),
-            line_color: Some(Color::Gray),
-            highlight_color: Some(Color::Blue),
-            locked_key_color: Some(Color::Purple),
             input_method: InputMethod::SquareMap,
             ..Default::default()
         }),

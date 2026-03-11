@@ -178,14 +178,15 @@ impl QwertyLayout {
         );
     }
 
-    pub(crate) fn draw(&self, luxboard: &Keyboard, font: &Font) {
+    pub(crate) fn draw(&self, kbd: &Keyboard, font: &Font) {
         let rows = match self.shifted {
             true => &self.shifted_rows,
             false => &self.rows,
         };
 
-        let cell_height = luxboard.height as i32 / (rows.len() - 1) as i32;
+        let cell_height = kbd.height as i32 / (rows.len() - 1) as i32;
         let board_height = HEIGHT - (cell_height * (rows.len()) as i32);
+        let theme = kbd.theme;
 
         draw_rect(
             Point {
@@ -197,7 +198,7 @@ impl QwertyLayout {
                 height: HEIGHT - board_height,
             },
             Style {
-                fill_color: luxboard.bg_color,
+                fill_color: theme.bg,
                 stroke_color: Color::None,
                 stroke_width: 1,
             },
@@ -213,7 +214,7 @@ impl QwertyLayout {
                 y: board_height,
             },
             LineStyle {
-                color: luxboard.line_color,
+                color: theme.primary,
                 width: 1,
             },
         );
@@ -230,7 +231,7 @@ impl QwertyLayout {
                     y: cell_y,
                 },
                 LineStyle {
-                    color: luxboard.line_color,
+                    color: theme.primary,
                     width: 1,
                 },
             );
@@ -279,12 +280,12 @@ impl QwertyLayout {
                         key.cells as u32,
                         last_x,
                         last_y,
-                        luxboard.locked_key_color,
+                        theme.secondary,
                     );
                 }
 
-                if self.rows.len() - row_idx - 1 == luxboard.ysel as usize
-                    && col_idx == luxboard.xsel as usize
+                if self.rows.len() - row_idx - 1 == kbd.ysel as usize
+                    && col_idx == kbd.xsel as usize
                 {
                     self.draw_highlight_in_key(
                         cell_width as u32,
@@ -292,7 +293,7 @@ impl QwertyLayout {
                         key.cells as u32,
                         last_x,
                         last_y,
-                        luxboard.highlight_color,
+                        theme.primary,
                     );
                 }
 
@@ -306,7 +307,7 @@ impl QwertyLayout {
                         y: HEIGHT - (cell_height * ((row_idx as i32) + 1)),
                     },
                     LineStyle {
-                        color: luxboard.line_color,
+                        color: theme.primary,
                         width: 1,
                     },
                 );
@@ -318,7 +319,7 @@ impl QwertyLayout {
                         x: text_draw_x,
                         y: top_y - (font.char_height() / 2) as i32 + 1,
                     },
-                    luxboard.text_color,
+                    theme.primary,
                 );
             }
         }
