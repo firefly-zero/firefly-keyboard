@@ -26,7 +26,7 @@ pub enum State {
 pub struct Options {
     /// The keyboard layout. Currently only QWERTY is supported.
     pub layout: QwertyLayout,
-    /// The keyboard height. Default: 75px.
+    /// The keyboard height. Default: 78px.
     pub height: u32,
     /// The keyboard color scheme. Defaults to the theme set in system settings.
     pub theme: Theme,
@@ -42,7 +42,7 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             layout: QwertyLayout::default(),
-            height: 75,
+            height: 13 * 6,
             theme: get_settings(get_me()).theme,
             peer: Peer::COMBINED,
             open: true,

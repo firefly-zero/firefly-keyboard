@@ -183,8 +183,8 @@ impl QwertyLayout {
             &self.rows
         };
 
-        let cell_height = kbd.height as i32 / (rows.len() - 1) as i32;
-        let board_height = HEIGHT - (cell_height * (rows.len()) as i32);
+        let cell_height = kbd.height as i32 / rows.len() as i32;
+        let board_height = HEIGHT - (cell_height * rows.len() as i32);
         let theme = kbd.theme;
 
         draw_rect(
