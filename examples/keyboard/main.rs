@@ -5,7 +5,7 @@ extern crate alloc;
 
 use alloc::format;
 use core::cell::OnceCell;
-use firefly_keyboard::*;
+use firefly_keyboard::{Keyboard, Options};
 use firefly_rust::*;
 
 static mut STATE: OnceCell<State> = OnceCell::new();
@@ -36,46 +36,31 @@ extern "C" fn boot() {
 #[unsafe(no_mangle)]
 extern "C" fn update() {
     let state = get_state();
-
     let buttons = read_buttons(Peer::COMBINED);
     let pressed = buttons.just_pressed(&state.buttons);
-
     if state.keyboard.is_open() {
         state.keyboard.update();
-    } else {
-        if pressed.e {
-            state.keyboard.open();
-        }
+    } else if pressed.e {
+        state.keyboard.open();
     }
-
     state.buttons = buttons;
 }
 
 #[unsafe(no_mangle)]
 extern "C" fn render() {
     let state = get_state();
-
+    clear_screen(Color::Black);
+    let font = state.font.as_font();
     if state.keyboard.is_open() {
-        clear_screen(Color::Black);
-        let font = state.font.as_font();
         state.keyboard.render(&font);
-
         let mut tmp = state.keyboard.text.clone();
         tmp.push('_');
-
         draw_text(&tmp, &font, Point::new(4, 8), Color::White);
     } else {
-        clear_screen(Color::Black);
-
-        draw_text(
-            format!(
-                "current text: {}\n\npress E to open keyboard",
-                state.keyboard.text,
-            )
-            .as_str(),
-            &state.font.as_font(),
-            Point { x: 4, y: 8 },
-            Color::White,
+        let text = format!(
+            "current text: {}\n\npress E to open keyboard",
+            state.keyboard.text,
         );
+        draw_text(&text, &font, Point::new(4, 8), Color::White);
     }
 }
