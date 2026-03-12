@@ -1,10 +1,11 @@
 use crate::*;
 use alloc::string::String;
 use alloc::vec::Vec;
+use firefly_rust::DPad8;
 use firefly_rust::Theme;
 use firefly_rust::get_me;
 use firefly_rust::get_settings;
-use firefly_rust::{Buttons, Font, Pad, Peer, read_buttons, read_pad};
+use firefly_rust::{Buttons, Font, Peer, read_buttons, read_pad};
 
 /// Current state of the luxboard-lite instance.
 pub enum State {
@@ -46,16 +47,18 @@ impl Default for Options {
 ///
 /// Please use [`new()`](fn@Self::new) or [`default()`](fn@Self::default) to create a new instance!
 pub struct Keyboard {
-    is_open: bool,
-    board: QwertyLayout,
     pub height: u32,
-    pub(crate) xsel: u32,
-    pub(crate) ysel: u32,
-    last_pad: Option<Pad>,
-    last_buttons: Buttons,
     pub text: String,
     pub theme: Theme,
     pub peer: Peer,
+
+    pub(crate) xsel: u32,
+    pub(crate) ysel: u32,
+
+    is_open: bool,
+    board: QwertyLayout,
+    last_pad: DPad8,
+    last_buttons: Buttons,
 }
 
 impl Keyboard {
@@ -67,8 +70,8 @@ impl Keyboard {
             is_open: options.open,
             xsel: 0,
             ysel: 0,
-            last_pad: read_pad(options.peer),
-            last_buttons: read_buttons(options.peer),
+            last_pad: DPad8::default(),
+            last_buttons: Buttons::default(),
             text: String::default(),
             theme: options.theme,
             peer: options.peer,
@@ -81,10 +84,9 @@ impl Keyboard {
             return State::Closed;
         }
 
-        let pad = read_pad(self.peer);
-        if let Some(pad) = pad {
-            self.handle_pad(pad);
-        }
+        let pad = read_pad(self.peer).unwrap_or_default();
+        let dpad = pad.as_dpad8();
+        self.handle_pad(dpad);
 
         let buttons = read_buttons(self.peer);
         let pressed = buttons.just_pressed(&self.last_buttons);
@@ -93,17 +95,16 @@ impl Keyboard {
             self.is_open = false
         }
 
-        self.last_pad = pad;
+        self.last_pad = dpad;
         self.last_buttons = buttons;
         state
     }
 
-    fn handle_pad(&mut self, pad: Pad) {
-        let dpad = pad.as_dpad8();
-        let pressed = dpad.just_pressed(&self.last_pad.unwrap_or_default().as_dpad8());
+    fn handle_pad(&mut self, dpad: DPad8) {
+        let pressed = dpad.just_pressed(&self.last_pad);
 
-        let last_row_len = self.board.rows.get(self.ysel as usize).unwrap().keys.len() as i32 - 1;
-
+        let last_row = self.board.rows.get(self.ysel as usize).unwrap();
+        let last_row_len = last_row.keys.len() as i32 - 1;
         let mut xchg: i32 = 0;
         let mut ychg: i32 = 0;
 
@@ -127,7 +128,8 @@ impl Keyboard {
             self.ysel += ychg as u32;
         }
 
-        let row_len = self.board.rows.get(self.ysel as usize).unwrap().keys.len() as i32 - 1;
+        let row = self.board.rows.get(self.ysel as usize).unwrap();
+        let row_len = row.keys.len() as i32 - 1;
 
         if last_row_len > row_len {
             let mut cells = Vec::with_capacity(row_len as usize);
