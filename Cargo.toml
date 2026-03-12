@@ -2,6 +2,7 @@
 name = "firefly-keyboard"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.91.0"
 
 [dependencies]
 firefly-rust = "0.13.0"

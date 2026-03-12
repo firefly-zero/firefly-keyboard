@@ -141,6 +141,7 @@ impl Default for QwertyLayout {
 }
 
 impl QwertyLayout {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -158,11 +159,11 @@ impl QwertyLayout {
         let mut y_modifier = 0;
 
         if last_x != 0 {
-            x_modifier += 1
+            x_modifier += 1;
         }
 
         if last_y != 0 {
-            y_modifier += 1
+            y_modifier += 1;
         }
 
         draw_rect(
@@ -179,9 +180,10 @@ impl QwertyLayout {
     }
 
     pub(crate) fn draw(&self, kbd: &Keyboard, font: &Font) {
-        let rows = match self.shifted {
-            true => &self.shifted_rows,
-            false => &self.rows,
+        let rows = if self.shifted {
+            &self.shifted_rows
+        } else {
+            &self.rows
         };
 
         let cell_height = kbd.height as i32 / (rows.len() - 1) as i32;
@@ -219,7 +221,7 @@ impl QwertyLayout {
             },
         );
 
-        for i in 0..rows.len() + 1 {
+        for i in 0..=rows.len() {
             let i = i as i32;
 
             let cell_y = HEIGHT - (i * cell_height);
@@ -241,8 +243,8 @@ impl QwertyLayout {
             // draw from bottom up
             let mut this_row_cells = 0;
 
-            for key in row.keys.iter() {
-                this_row_cells += key.cells
+            for key in &row.keys {
+                this_row_cells += key.cells;
             }
 
             let cell_width = WIDTH as u8 / this_row_cells;
@@ -262,21 +264,21 @@ impl QwertyLayout {
 
                 let half_line = font.line_width_ascii(text) / 2;
                 let text_draw_x =
-                    (current_x + (((cell_width * key.cells) as u32 / 2) - half_line)) as i32 + 1;
+                    (current_x + ((u32::from(cell_width * key.cells) / 2) - half_line)) as i32 + 1;
 
                 let last_x = current_x as i32;
                 let last_y = HEIGHT - (cell_height * (row_idx + 1) as i32);
 
-                current_x += (cell_width * key.cells) as u32;
+                current_x += u32::from(cell_width * key.cells);
                 top_y = HEIGHT - (cell_height * row_idx as i32);
 
                 if let KeyType::Shift = key.key_type
                     && self.shifted
                 {
                     self.draw_highlight_in_key(
-                        cell_width as u32,
+                        u32::from(cell_width),
                         cell_height as u32,
-                        key.cells as u32,
+                        u32::from(key.cells),
                         last_x,
                         last_y,
                         theme.secondary,
@@ -287,9 +289,9 @@ impl QwertyLayout {
                     && col_idx == kbd.xsel as usize
                 {
                     self.draw_highlight_in_key(
-                        cell_width as u32,
+                        u32::from(cell_width),
                         cell_height as u32,
-                        key.cells as u32,
+                        u32::from(key.cells),
                         last_x,
                         last_y,
                         theme.accent,
@@ -316,7 +318,7 @@ impl QwertyLayout {
                     font,
                     Point {
                         x: text_draw_x,
-                        y: top_y - (font.char_height() / 2) as i32 + 1,
+                        y: top_y - i32::from(font.char_height() / 2) + 1,
                     },
                     theme.primary,
                 );
@@ -325,9 +327,10 @@ impl QwertyLayout {
     }
 
     pub(crate) fn get(&self, x: usize, y: usize) -> Option<&Key> {
-        let rows = match self.shifted {
-            true => &self.shifted_rows,
-            false => &self.rows,
+        let rows = if self.shifted {
+            &self.shifted_rows
+        } else {
+            &self.rows
         };
 
         let row = rows.get(y)?;

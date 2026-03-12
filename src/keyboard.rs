@@ -22,7 +22,7 @@ pub enum State {
     JustCancelled,
 }
 
-/// Luxboard initialization options.
+/// [`Keyboard`] initialization options.
 pub struct Options {
     /// The keyboard layout. Currently only QWERTY is supported.
     pub layout: QwertyLayout,
@@ -51,9 +51,7 @@ impl Default for Options {
     }
 }
 
-/// LuxboardLite virtual keyboard.
-///
-/// Please use [`new()`](fn@Self::new) or [`default()`](fn@Self::default) to create a new instance!
+/// The virtual keyboard.
 pub struct Keyboard {
     pub height: u32,
     pub text: String,
@@ -71,7 +69,7 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    /// Creates a new LuxboardLite instance.
+    #[must_use]
     pub fn new(options: Options) -> Keyboard {
         Keyboard {
             board: options.layout,
@@ -102,7 +100,7 @@ impl Keyboard {
         let pressed = buttons.just_pressed(&self.last_buttons);
         let state = self.handle_buttons(pressed);
         if matches!(state, State::JustCancelled | State::JustClosed) {
-            self.is_open = false
+            self.is_open = false;
         }
 
         self.last_pad = dpad;
@@ -209,12 +207,12 @@ impl Keyboard {
                 }
             }
         } else if pressed.w {
-            if self.text.is_empty() {
+            state = if self.text.is_empty() {
                 // NOTE: remove?
-                state = State::JustCancelled
+                State::JustCancelled
             } else {
                 self.text.pop();
-                state = State::TextChanged
+                State::TextChanged
             }
         } else if pressed.n {
             self.board.shifted = !self.board.shifted;
