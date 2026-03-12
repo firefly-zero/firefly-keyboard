@@ -24,7 +24,8 @@ pub enum State {
 pub struct Options {
     pub layout: QwertyLayout,
     pub height: u32,
-    pub theme: Option<Theme>,
+    pub theme: Theme,
+    pub peer: Peer,
 }
 
 impl Default for Options {
@@ -32,7 +33,8 @@ impl Default for Options {
         Self {
             layout: QwertyLayout::default(),
             height: 75,
-            theme: None,
+            theme: get_settings(get_me()).theme,
+            peer: Peer::COMBINED,
         }
     }
 }
@@ -43,16 +45,14 @@ impl Default for Options {
 pub struct Keyboard {
     is_open_state: bool,
     board: QwertyLayout,
-    /// Height of the keyboard. Defaults to `75`.
     pub height: u32,
     pub(crate) xsel: u32,
     pub(crate) ysel: u32,
     last_pad: Option<Pad>,
     last_buttons: Buttons,
-    /// Current keyboard text.
     pub text: String,
-    /// Colors to use.
     pub theme: Theme,
+    pub peer: Peer,
 }
 
 impl Keyboard {
@@ -64,12 +64,11 @@ impl Keyboard {
             is_open_state: false,
             xsel: 0,
             ysel: 0,
-            last_pad: read_pad(Peer::COMBINED),
-            last_buttons: read_buttons(Peer::COMBINED),
+            last_pad: read_pad(options.peer),
+            last_buttons: read_buttons(options.peer),
             text: String::default(),
-            theme: options
-                .theme
-                .unwrap_or_else(|| get_settings(get_me()).theme),
+            theme: options.theme,
+            peer: options.peer,
         }
     }
 
@@ -81,10 +80,10 @@ impl Keyboard {
             return State::Closed;
         }
 
-        let buttons = read_buttons(Peer::COMBINED);
+        let buttons = read_buttons(self.peer);
         let pressed = buttons.just_pressed(&self.last_buttons);
 
-        let pad = read_pad(Peer::COMBINED);
+        let pad = read_pad(self.peer);
 
         if let Some(pad) = pad {
             let dpad = pad.as_dpad8();
@@ -206,7 +205,7 @@ impl Keyboard {
     /// Opens the keyboard.
     pub fn open(&mut self) {
         self.is_open_state = true;
-        self.last_buttons = read_buttons(Peer::COMBINED);
+        self.last_buttons = read_buttons(self.peer);
         self.xsel = 0;
         self.ysel = 0;
     }
