@@ -26,6 +26,8 @@ pub struct Options {
     pub height: u32,
     pub theme: Theme,
     pub peer: Peer,
+    /// If true, the keyboard will be open by default.
+    pub open: bool,
 }
 
 impl Default for Options {
@@ -35,6 +37,7 @@ impl Default for Options {
             height: 75,
             theme: get_settings(get_me()).theme,
             peer: Peer::COMBINED,
+            open: true,
         }
     }
 }
@@ -43,7 +46,7 @@ impl Default for Options {
 ///
 /// Please use [`new()`](fn@Self::new) or [`default()`](fn@Self::default) to create a new instance!
 pub struct Keyboard {
-    is_open_state: bool,
+    is_open: bool,
     board: QwertyLayout,
     pub height: u32,
     pub(crate) xsel: u32,
@@ -61,7 +64,7 @@ impl Keyboard {
         Keyboard {
             board: options.layout,
             height: options.height,
-            is_open_state: false,
+            is_open: options.open,
             xsel: 0,
             ysel: 0,
             last_pad: read_pad(options.peer),
@@ -76,7 +79,7 @@ impl Keyboard {
     pub fn update(&mut self) -> State {
         let mut ret_state = State::Open;
 
-        if !self.is_open_state {
+        if !self.is_open {
             return State::Closed;
         }
 
@@ -188,7 +191,7 @@ impl Keyboard {
         self.last_buttons = buttons;
 
         match ret_state {
-            State::JustCancelled | State::JustClosed(_) => self.is_open_state = false,
+            State::JustCancelled | State::JustClosed(_) => self.is_open = false,
             _ => {}
         }
 
@@ -197,14 +200,14 @@ impl Keyboard {
 
     /// Renders the keyboard.
     pub fn render(&self, font: &Font) {
-        if self.is_open_state {
+        if self.is_open {
             self.board.draw(self, font);
         }
     }
 
     /// Opens the keyboard.
     pub fn open(&mut self) {
-        self.is_open_state = true;
+        self.is_open = true;
         self.last_buttons = read_buttons(self.peer);
         self.xsel = 0;
         self.ysel = 0;
@@ -212,7 +215,7 @@ impl Keyboard {
 
     /// Returns if the keyboard is currently open.
     pub fn is_open(&mut self) -> bool {
-        self.is_open_state
+        self.is_open
     }
 
     /// Clears the keyboard's text.
