@@ -25,10 +25,7 @@ fn get_state() -> &'static mut State {
 extern "C" fn boot() {
     let state = State {
         font: load_file_buf("font").expect("could not load font!"),
-        luxboard_lite: Keyboard::new(Options {
-            layout: QwertyLayout::new(),
-            ..Default::default()
-        }),
+        luxboard_lite: Keyboard::new(Options::default()),
         buttons: read_buttons(Peer::COMBINED),
     };
 

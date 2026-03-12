@@ -21,11 +21,20 @@ pub enum State {
 }
 
 /// Luxboard initialization options.
-#[derive(Default)]
 pub struct Options {
     pub layout: QwertyLayout,
-    pub height: Option<u32>,
+    pub height: u32,
     pub theme: Option<Theme>,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            layout: QwertyLayout::default(),
+            height: 75,
+            theme: None,
+        }
+    }
 }
 
 /// LuxboardLite virtual keyboard.
@@ -51,7 +60,7 @@ impl Keyboard {
     pub fn new(options: Options) -> Keyboard {
         Keyboard {
             board: options.layout,
-            height: options.height.unwrap_or(75),
+            height: options.height,
             is_open_state: false,
             xsel: 0,
             ysel: 0,
