@@ -180,68 +180,61 @@ impl Keyboard {
     }
 
     fn handle_buttons(&mut self, buttons: Buttons) -> State {
-        let mut state = State::Open;
-
         let pressed = buttons.just_pressed(&self.last_buttons);
-        if pressed.s || pressed.e {
-            let maybe_state = self.handle_pressed();
-            if let Some(new_state) = maybe_state {
-                state = new_state;
-            }
-        }
-
         let released = buttons.just_released(&self.last_buttons);
-        if released.s || released.e {
-            let maybe_state = self.handle_released();
-            if let Some(new_state) = maybe_state {
-                state = new_state;
-            }
-        }
 
-        if pressed.w {
-            state = if self.text.is_empty() {
-                // NOTE: remove?
+        if pressed.s || pressed.e {
+            self.handle_pressed()
+        } else if released.s || released.e {
+            self.handle_released()
+        } else if released.w {
+            if self.text.is_empty() {
                 State::JustCancelled
             } else {
                 self.text.pop();
                 State::TextChanged
             }
-        }
-        if pressed.n {
+        } else if pressed.n {
             self.board.shifted = !self.board.shifted;
+            State::Open
+        } else {
+            State::Open
         }
-        state
     }
 
-    fn handle_pressed(&mut self) -> Option<State> {
-        let key = self.board.get(self.xsel as usize, self.ysel as usize)?;
+    fn handle_pressed(&mut self) -> State {
+        let Some(key) = self.board.get(self.xsel as usize, self.ysel as usize) else {
+            return State::Open;
+        };
         match key.key_type {
             KeyType::Char(c) => {
                 self.text.push(c);
-                Some(State::TextChanged)
+                State::TextChanged
             }
             KeyType::Space => {
                 self.text.push(' ');
-                Some(State::TextChanged)
+                State::TextChanged
             }
             KeyType::Backspace => {
                 self.text.pop();
-                Some(State::TextChanged)
+                State::TextChanged
             }
             KeyType::Shift => {
                 self.board.shifted = !self.board.shifted;
-                None
+                State::Open
             }
-            KeyType::Ok | KeyType::Cancel => None,
+            KeyType::Ok | KeyType::Cancel => State::Open,
         }
     }
 
-    fn handle_released(&mut self) -> Option<State> {
-        let key = self.board.get(self.xsel as usize, self.ysel as usize)?;
+    fn handle_released(&mut self) -> State {
+        let Some(key) = self.board.get(self.xsel as usize, self.ysel as usize) else {
+            return State::Open;
+        };
         match key.key_type {
-            KeyType::Ok => Some(State::JustClosed),
-            KeyType::Cancel => Some(State::JustCancelled),
-            _ => None,
+            KeyType::Ok => State::JustClosed,
+            KeyType::Cancel => State::JustCancelled,
+            _ => State::Open,
         }
     }
 
