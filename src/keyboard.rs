@@ -7,28 +7,35 @@ use firefly_rust::get_me;
 use firefly_rust::get_settings;
 use firefly_rust::{Buttons, Font, Peer, read_buttons, read_pad};
 
-/// Current state of the luxboard-lite instance.
+/// The current state of the keyboard.
+#[derive(Clone, Copy)]
 pub enum State {
     /// Text was changed, returns the new text.
-    TextChanged(String),
+    TextChanged,
     /// Default state when the keyboard is open.
     Open,
-    /// default state when the keyboard is closed.
+    /// Default state when the keyboard is closed.
     Closed,
-    /// Luxboard was closed this update cycle. Returns the keyboard's text.
-    JustClosed(String),
+    /// Keyboard was closed this update cycle. Returns the keyboard's text.
+    JustClosed,
     /// Input was just cancelled by the user.
     JustCancelled,
 }
 
 /// Luxboard initialization options.
 pub struct Options {
+    /// The keyboard layout. Currently only QWERTY is supported.
     pub layout: QwertyLayout,
+    /// The keyboard height. Default: 75px.
     pub height: u32,
+    /// The keyboard color scheme. Defaults to the theme set in system settings.
     pub theme: Theme,
+    /// The peer to read input from. Defaults to the combined input.
     pub peer: Peer,
     /// If true, the keyboard will be open by default.
     pub open: bool,
+    /// The default text. Empty by default.
+    pub text: String,
 }
 
 impl Default for Options {
@@ -39,6 +46,7 @@ impl Default for Options {
             theme: get_settings(get_me()).theme,
             peer: Peer::COMBINED,
             open: true,
+            text: String::default(),
         }
     }
 }
@@ -74,7 +82,7 @@ impl Keyboard {
             held_for: 0,
             last_pad: DPad8::default(),
             last_buttons: Buttons::default(),
-            text: String::default(),
+            text: options.text,
             theme: options.theme,
             peer: options.peer,
         }
@@ -93,7 +101,7 @@ impl Keyboard {
         let buttons = read_buttons(self.peer);
         let pressed = buttons.just_pressed(&self.last_buttons);
         let state = self.handle_buttons(pressed);
-        if matches!(state, State::JustCancelled | State::JustClosed(_)) {
+        if matches!(state, State::JustCancelled | State::JustClosed) {
             self.is_open = false
         }
 
@@ -181,19 +189,19 @@ impl Keyboard {
                 match key.key_type {
                     KeyType::Char(c) => {
                         self.text.push(c);
-                        state = State::TextChanged(self.text.clone());
+                        state = State::TextChanged;
                     }
                     KeyType::Space => {
                         self.text.push(' ');
-                        state = State::TextChanged(self.text.clone());
+                        state = State::TextChanged;
                     }
                     KeyType::Backspace => {
                         self.text.pop();
-                        state = State::TextChanged(self.text.clone());
+                        state = State::TextChanged;
                     }
                     KeyType::Shift => self.board.shifted = !self.board.shifted,
                     KeyType::Ok => {
-                        state = State::JustClosed(self.text.clone());
+                        state = State::JustClosed;
                     }
                     KeyType::Cancel => {
                         state = State::JustCancelled;
@@ -206,7 +214,7 @@ impl Keyboard {
                 state = State::JustCancelled
             } else {
                 self.text.pop();
-                state = State::TextChanged(self.text.clone())
+                state = State::TextChanged
             }
         } else if pressed.n {
             self.board.shifted = !self.board.shifted;

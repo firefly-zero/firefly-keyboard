@@ -12,7 +12,7 @@ static mut STATE: OnceCell<State> = OnceCell::new();
 
 struct State {
     font: FileBuf,
-    luxboard_lite: Keyboard,
+    keyboard: Keyboard,
     buttons: Buttons,
 }
 
@@ -25,7 +25,7 @@ fn get_state() -> &'static mut State {
 extern "C" fn boot() {
     let state = State {
         font: load_file_buf("font").expect("could not load font!"),
-        luxboard_lite: Keyboard::new(Options::default()),
+        keyboard: Keyboard::new(Options::default()),
         buttons: read_buttons(Peer::COMBINED),
     };
 
@@ -40,11 +40,11 @@ extern "C" fn update() {
     let buttons = read_buttons(Peer::COMBINED);
     let pressed = buttons.just_pressed(&state.buttons);
 
-    if state.luxboard_lite.is_open() {
-        state.luxboard_lite.update();
+    if state.keyboard.is_open() {
+        state.keyboard.update();
     } else {
         if pressed.e {
-            state.luxboard_lite.open();
+            state.keyboard.open();
         }
     }
 
@@ -55,12 +55,12 @@ extern "C" fn update() {
 extern "C" fn render() {
     let state = get_state();
 
-    if state.luxboard_lite.is_open() {
+    if state.keyboard.is_open() {
         clear_screen(Color::Black);
         let font = state.font.as_font();
-        state.luxboard_lite.render(&font);
+        state.keyboard.render(&font);
 
-        let mut tmp = state.luxboard_lite.text.clone();
+        let mut tmp = state.keyboard.text.clone();
         tmp.push('_');
 
         draw_text(&tmp, &font, Point::new(4, 8), Color::White);
@@ -69,8 +69,8 @@ extern "C" fn render() {
 
         draw_text(
             format!(
-                "current text: {}\n\npress E to open luxboard lite",
-                state.luxboard_lite.text,
+                "current text: {}\n\npress E to open keyboard",
+                state.keyboard.text,
             )
             .as_str(),
             &state.font.as_font(),
