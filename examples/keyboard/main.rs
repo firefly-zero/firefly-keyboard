@@ -27,7 +27,6 @@ extern "C" fn boot() {
         font: load_file_buf("font").expect("could not load font!"),
         luxboard_lite: Keyboard::new(Options {
             layout: QwertyLayout::new(),
-            input_method: InputMethod::SquareMap,
             ..Default::default()
         }),
         buttons: read_buttons(Peer::COMBINED),
@@ -49,12 +48,6 @@ extern "C" fn update() {
     } else {
         if pressed.e {
             state.luxboard_lite.open();
-        } else if pressed.s {
-            if let InputMethod::SquareMap = state.luxboard_lite.input_method {
-                state.luxboard_lite.input_method = InputMethod::Dpad;
-            } else {
-                state.luxboard_lite.input_method = InputMethod::SquareMap;
-            }
         }
     }
 
@@ -82,16 +75,15 @@ extern "C" fn render() {
     } else {
         clear_screen(Color::Black);
 
-        let input_method = match state.luxboard_lite.input_method {
-            InputMethod::Dpad => "d-pad",
-            InputMethod::SquareMap => "square map",
-        };
-
         draw_text(
-            format!("current text: {}\n\npress S to change touchpad input type\n(current {})\n\npress E to open luxboard lite", state.luxboard_lite.text, input_method).as_str(),
+            format!(
+                "current text: {}\n\npress E to open luxboard lite",
+                state.luxboard_lite.text,
+            )
+            .as_str(),
             &state.font.as_font(),
             Point { x: 4, y: 8 },
-            Color::White
+            Color::White,
         );
     }
 }

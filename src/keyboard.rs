@@ -4,19 +4,7 @@ use alloc::vec::Vec;
 use firefly_rust::Theme;
 use firefly_rust::get_me;
 use firefly_rust::get_settings;
-use firefly_rust::math::abs;
-use firefly_rust::math::sqrt;
 use firefly_rust::{Buttons, Font, Pad, Peer, read_buttons, read_pad};
-
-/// Method of providing input from the touchpad to luxboard-lite.
-#[derive(Default)]
-pub enum InputMethod {
-    #[default]
-    /// Treat the touchpad as an 8-way d-pad.
-    Dpad,
-    /// Map a square area of the touchpad to each key on the keyboard.
-    SquareMap,
-}
 
 /// Current state of the luxboard-lite instance.
 pub enum State {
@@ -38,7 +26,6 @@ pub struct Options {
     pub layout: QwertyLayout,
     pub height: Option<u32>,
     pub theme: Option<Theme>,
-    pub input_method: InputMethod,
 }
 
 /// LuxboardLite virtual keyboard.
@@ -57,8 +44,6 @@ pub struct Keyboard {
     pub text: String,
     /// Colors to use.
     pub theme: Theme,
-    /// Method of recieving input.
-    pub input_method: InputMethod,
 }
 
 impl Keyboard {
@@ -76,7 +61,6 @@ impl Keyboard {
             theme: options
                 .theme
                 .unwrap_or_else(|| get_settings(get_me()).theme),
-            input_method: options.input_method,
         }
     }
 
@@ -94,111 +78,67 @@ impl Keyboard {
         let pad = read_pad(Peer::COMBINED);
 
         if let Some(pad) = pad {
-            match self.input_method {
-                InputMethod::Dpad => {
-                    let dpad = pad.as_dpad8();
-                    let pressed = dpad.just_pressed(&self.last_pad.unwrap_or_default().as_dpad8());
+            let dpad = pad.as_dpad8();
+            let pressed = dpad.just_pressed(&self.last_pad.unwrap_or_default().as_dpad8());
 
-                    let last_row_len =
-                        self.board.rows.get(self.ysel as usize).unwrap().keys.len() as i32 - 1;
+            let last_row_len =
+                self.board.rows.get(self.ysel as usize).unwrap().keys.len() as i32 - 1;
 
-                    let mut xchg: i32 = 0;
-                    let mut ychg: i32 = 0;
+            let mut xchg: i32 = 0;
+            let mut ychg: i32 = 0;
 
-                    if pressed.up {
-                        ychg -= 1;
-                    } else if pressed.down {
-                        ychg += 1;
-                    }
+            if pressed.up {
+                ychg -= 1;
+            } else if pressed.down {
+                ychg += 1;
+            }
 
-                    if pressed.right {
-                        xchg += 1;
-                    } else if pressed.left {
-                        xchg -= 1;
-                    }
+            if pressed.right {
+                xchg += 1;
+            } else if pressed.left {
+                xchg -= 1;
+            }
 
-                    if (self.ysel as i32) + ychg > self.board.rows.len() as i32 - 1 {
-                        self.ysel = 0;
-                    } else if (self.ysel as i32) + ychg < 0 {
-                        self.ysel = self.board.rows.len() as u32 - 1;
-                    } else {
-                        self.ysel += ychg as u32;
-                    }
+            if (self.ysel as i32) + ychg > self.board.rows.len() as i32 - 1 {
+                self.ysel = 0;
+            } else if (self.ysel as i32) + ychg < 0 {
+                self.ysel = self.board.rows.len() as u32 - 1;
+            } else {
+                self.ysel += ychg as u32;
+            }
 
-                    let row_len =
-                        self.board.rows.get(self.ysel as usize).unwrap().keys.len() as i32 - 1;
+            let row_len = self.board.rows.get(self.ysel as usize).unwrap().keys.len() as i32 - 1;
 
-                    if last_row_len > row_len {
-                        let mut cells = Vec::with_capacity(row_len as usize);
+            if last_row_len > row_len {
+                let mut cells = Vec::with_capacity(row_len as usize);
 
-                        for (idx, keys) in self
-                            .board
-                            .rows
-                            .get(self.ysel as usize)
-                            .unwrap()
-                            .keys
-                            .iter()
-                            .enumerate()
-                        {
-                            for _ in 0..keys.cells {
-                                cells.push(idx as u32);
-                            }
-                        }
-
-                        self.xsel = *cells.get(self.xsel as usize).unwrap();
-                    } else if last_row_len < row_len {
-                        // TODO: better logic
-
-                        self.xsel += 1;
-                    }
-
-                    if (self.xsel as i32) + xchg > row_len {
-                        self.xsel = 0;
-                    } else if (self.xsel as i32) + xchg < 0 {
-                        self.xsel = row_len as u32;
-                    } else {
-                        self.xsel += xchg as u32;
+                for (idx, keys) in self
+                    .board
+                    .rows
+                    .get(self.ysel as usize)
+                    .unwrap()
+                    .keys
+                    .iter()
+                    .enumerate()
+                {
+                    for _ in 0..keys.cells {
+                        cells.push(idx as u32);
                     }
                 }
-                InputMethod::SquareMap => {
-                    let sqrt22 = sqrt(2.0) / 2.0;
 
-                    let x = pad.x as f32 / 1000.0; // to unit circle
-                    let y = pad.y as f32 / 1000.0;
+                self.xsel = *cells.get(self.xsel as usize).unwrap();
+            } else if last_row_len < row_len {
+                // TODO: better logic
 
-                    let x = x.min(sqrt22).max(-sqrt22); // limit to square
-                    let y = y.min(sqrt22).max(-sqrt22);
+                self.xsel += 1;
+            }
 
-                    let x = x * sqrt22; // center
-                    let y = y * sqrt22;
-
-                    let x = x * 2.0;
-                    let y = y * 2.0;
-
-                    let x = x + 0.5;
-
-                    let y = y * (self.board.rows.len() as f32 - 1.0);
-
-                    let y = abs((y - self.board.rows.len() as f32) / 2.0);
-
-                    let row_len = (self.board.rows.get(y as usize).unwrap().keys.len() - 1) as u32;
-
-                    let x = x * (row_len as f32);
-
-                    let mut x = x as u32;
-                    let mut y = y as u32;
-
-                    if x > row_len as u32 {
-                        x = row_len as u32;
-                    }
-
-                    if y > self.board.rows.len() as u32 - 1 {
-                        y = self.board.rows.len() as u32 - 1;
-                    }
-
-                    self.xsel = x;
-                    self.ysel = y;
-                }
+            if (self.xsel as i32) + xchg > row_len {
+                self.xsel = 0;
+            } else if (self.xsel as i32) + xchg < 0 {
+                self.xsel = row_len as u32;
+            } else {
+                self.xsel += xchg as u32;
             }
         }
 

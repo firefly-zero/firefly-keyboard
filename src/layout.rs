@@ -292,7 +292,7 @@ impl QwertyLayout {
                         key.cells as u32,
                         last_x,
                         last_y,
-                        theme.primary,
+                        theme.accent,
                     );
                 }
 
