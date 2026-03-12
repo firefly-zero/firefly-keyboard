@@ -167,10 +167,7 @@ impl QwertyLayout {
         }
 
         draw_rect(
-            Point {
-                x: last_x + x_modifier + 1,
-                y: last_y + y_modifier + 1,
-            },
+            Point::new(last_x + x_modifier + 1, last_y + y_modifier + 1),
             Size {
                 width: (cell_width * key_cells) as i32 - 2 - x_modifier,
                 height: cell_height as i32 - 2 - y_modifier,
@@ -191,14 +188,8 @@ impl QwertyLayout {
         let theme = kbd.theme;
 
         draw_rect(
-            Point {
-                x: 0,
-                y: board_height,
-            },
-            Size {
-                width: WIDTH,
-                height: HEIGHT - board_height,
-            },
+            Point::new(0, board_height),
+            Size::new(WIDTH, HEIGHT - board_height),
             Style {
                 fill_color: theme.bg,
                 stroke_color: Color::None,
@@ -207,18 +198,9 @@ impl QwertyLayout {
         );
 
         draw_line(
-            Point {
-                x: 0,
-                y: board_height,
-            },
-            Point {
-                x: WIDTH,
-                y: board_height,
-            },
-            LineStyle {
-                color: theme.primary,
-                width: 1,
-            },
+            Point::new(0, board_height),
+            Point::new(WIDTH, board_height),
+            LineStyle::new(theme.primary, 1),
         );
 
         for i in 0..=rows.len() {
@@ -227,15 +209,9 @@ impl QwertyLayout {
             let cell_y = HEIGHT - (i * cell_height);
 
             draw_line(
-                Point { x: 0, y: cell_y },
-                Point {
-                    x: WIDTH,
-                    y: cell_y,
-                },
-                LineStyle {
-                    color: theme.primary,
-                    width: 1,
-                },
+                Point::new(0, cell_y),
+                Point::new(WIDTH, cell_y),
+                LineStyle::new(theme.primary, 1),
             );
         }
 
@@ -299,29 +275,16 @@ impl QwertyLayout {
                 }
 
                 draw_line(
-                    Point {
-                        x: current_x as i32,
-                        y: top_y,
-                    },
-                    Point {
-                        x: current_x as i32,
-                        y: HEIGHT - (cell_height * ((row_idx as i32) + 1)),
-                    },
-                    LineStyle {
-                        color: theme.primary,
-                        width: 1,
-                    },
+                    Point::new(current_x as i32, top_y),
+                    Point::new(
+                        current_x as i32,
+                        HEIGHT - (cell_height * ((row_idx as i32) + 1)),
+                    ),
+                    LineStyle::new(theme.primary, 1),
                 );
 
-                draw_text(
-                    text,
-                    font,
-                    Point {
-                        x: text_draw_x,
-                        y: top_y - i32::from(font.char_height() / 2) + 1,
-                    },
-                    theme.primary,
-                );
+                let point = Point::new(text_draw_x, top_y - i32::from(font.char_height() / 2) + 1);
+                draw_text(text, font, point, theme.primary);
             }
         }
     }
