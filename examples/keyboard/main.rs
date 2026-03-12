@@ -57,18 +57,13 @@ extern "C" fn render() {
 
     if state.luxboard_lite.is_open() {
         clear_screen(Color::Black);
-
-        state.luxboard_lite.render(&state.font.as_font());
+        let font = state.font.as_font();
+        state.luxboard_lite.render(&font);
 
         let mut tmp = state.luxboard_lite.text.clone();
         tmp.push('_');
 
-        draw_text(
-            &tmp,
-            &state.font.as_font(),
-            Point { x: 4, y: 8 },
-            Color::White,
-        );
+        draw_text(&tmp, &font, Point::new(4, 8), Color::White);
     } else {
         clear_screen(Color::Black);
 
