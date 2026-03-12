@@ -149,7 +149,6 @@ impl Keyboard {
             self.xsel = *cells.get(self.xsel as usize).unwrap();
         } else if last_row_len < row_len {
             // TODO: better logic
-
             self.xsel += 1;
         }
 
@@ -164,7 +163,7 @@ impl Keyboard {
 
     fn handle_buttons(&mut self, pressed: Buttons) -> State {
         let mut state = State::Open;
-        if pressed.e {
+        if pressed.s || pressed.e {
             if let Some(key) = self.board.get(self.xsel as usize, self.ysel as usize) {
                 match key.key_type {
                     KeyType::Char(c) => {
@@ -196,6 +195,8 @@ impl Keyboard {
                 self.text.pop();
                 state = State::TextChanged(self.text.clone())
             }
+        } else if pressed.n {
+            self.board.shifted = !self.board.shifted;
         }
         state
     }
