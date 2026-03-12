@@ -3,6 +3,12 @@ name = "firefly-keyboard"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.91.0"
+authors = ["Firefly Zero team"]
+description = "Virtual keyboard for Firefly Zero apps"
+repository = "https://github.com/firefly-zero/firefly-keyboard"
+license = "MIT"
+keywords = ["gamedev", "firefly-zero"]
+categories = ["game-development", "no-std", "wasm"]
 
 [dependencies]
 firefly-rust = "0.13.0"
