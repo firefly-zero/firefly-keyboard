@@ -97,8 +97,7 @@ impl Keyboard {
         self.handle_pad(dpad);
 
         let buttons = read_buttons(self.peer);
-        let pressed = buttons.just_pressed(&self.last_buttons);
-        let state = self.handle_buttons(pressed);
+        let state = self.handle_buttons(buttons);
         if matches!(state, State::JustCancelled | State::JustClosed) {
             self.is_open = false;
         }
@@ -180,33 +179,26 @@ impl Keyboard {
         }
     }
 
-    fn handle_buttons(&mut self, pressed: Buttons) -> State {
+    fn handle_buttons(&mut self, buttons: Buttons) -> State {
         let mut state = State::Open;
+
+        let pressed = buttons.just_pressed(&self.last_buttons);
         if pressed.s || pressed.e {
-            if let Some(key) = self.board.get(self.xsel as usize, self.ysel as usize) {
-                match key.key_type {
-                    KeyType::Char(c) => {
-                        self.text.push(c);
-                        state = State::TextChanged;
-                    }
-                    KeyType::Space => {
-                        self.text.push(' ');
-                        state = State::TextChanged;
-                    }
-                    KeyType::Backspace => {
-                        self.text.pop();
-                        state = State::TextChanged;
-                    }
-                    KeyType::Shift => self.board.shifted = !self.board.shifted,
-                    KeyType::Ok => {
-                        state = State::JustClosed;
-                    }
-                    KeyType::Cancel => {
-                        state = State::JustCancelled;
-                    }
-                }
+            let maybe_state = self.handle_pressed();
+            if let Some(new_state) = maybe_state {
+                state = new_state;
             }
-        } else if pressed.w {
+        }
+
+        let released = buttons.just_released(&self.last_buttons);
+        if released.s || released.e {
+            let maybe_state = self.handle_released();
+            if let Some(new_state) = maybe_state {
+                state = new_state;
+            }
+        }
+
+        if pressed.w {
             state = if self.text.is_empty() {
                 // NOTE: remove?
                 State::JustCancelled
@@ -214,10 +206,43 @@ impl Keyboard {
                 self.text.pop();
                 State::TextChanged
             }
-        } else if pressed.n {
+        }
+        if pressed.n {
             self.board.shifted = !self.board.shifted;
         }
         state
+    }
+
+    fn handle_pressed(&mut self) -> Option<State> {
+        let key = self.board.get(self.xsel as usize, self.ysel as usize)?;
+        match key.key_type {
+            KeyType::Char(c) => {
+                self.text.push(c);
+                Some(State::TextChanged)
+            }
+            KeyType::Space => {
+                self.text.push(' ');
+                Some(State::TextChanged)
+            }
+            KeyType::Backspace => {
+                self.text.pop();
+                Some(State::TextChanged)
+            }
+            KeyType::Shift => {
+                self.board.shifted = !self.board.shifted;
+                None
+            }
+            KeyType::Ok | KeyType::Cancel => None,
+        }
+    }
+
+    fn handle_released(&mut self) -> Option<State> {
+        let key = self.board.get(self.xsel as usize, self.ysel as usize)?;
+        match key.key_type {
+            KeyType::Ok => Some(State::JustClosed),
+            KeyType::Cancel => Some(State::JustCancelled),
+            _ => None,
+        }
     }
 
     /// Renders the keyboard.
