@@ -62,7 +62,8 @@ pub struct Keyboard {
     pub(crate) ysel: u32,
 
     is_open: bool,
-    held_for: u32,
+    pad_held: u32,
+    button_held: u32,
     board: QwertyLayout,
     last_pad: DPad8,
     last_buttons: Buttons,
@@ -77,7 +78,8 @@ impl Keyboard {
             is_open: options.open,
             xsel: 0,
             ysel: 0,
-            held_for: 0,
+            pad_held: 0,
+            button_held: 0,
             last_pad: DPad8::default(),
             last_buttons: Buttons::default(),
             text: options.text,
@@ -108,12 +110,12 @@ impl Keyboard {
     }
 
     fn handle_pad(&mut self, dpad: DPad8) {
-        self.held_for = if dpad.any() {
-            self.held_for.wrapping_add(1)
+        self.pad_held = if dpad.any() {
+            self.pad_held.wrapping_add(1)
         } else {
             0
         };
-        let pressed = if self.held_for > 30 && self.held_for.is_multiple_of(5) {
+        let pressed = if self.pad_held > 30 && self.pad_held.is_multiple_of(5) {
             dpad
         } else {
             dpad.just_pressed(&self.last_pad)
@@ -170,7 +172,16 @@ impl Keyboard {
     }
 
     fn handle_buttons(&mut self, buttons: Buttons) -> State {
-        let pressed = buttons.just_pressed(&self.last_buttons);
+        self.button_held = if buttons.any() {
+            self.button_held.wrapping_add(1)
+        } else {
+            0
+        };
+        let pressed = if self.button_held > 30 && self.button_held.is_multiple_of(5) {
+            buttons
+        } else {
+            buttons.just_pressed(&self.last_buttons)
+        };
         let released = buttons.just_released(&self.last_buttons);
 
         if pressed.s || pressed.e {
