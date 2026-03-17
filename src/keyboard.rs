@@ -118,6 +118,9 @@ impl Keyboard {
         } else {
             dpad.just_pressed(&self.last_pad)
         };
+        if !pressed.any() {
+            return;
+        }
 
         let last_row = self.board.rows.get(self.ysel as usize).unwrap();
         let last_row_len = last_row.keys.len() as i32 - 1;
@@ -150,15 +153,7 @@ impl Keyboard {
         if last_row_len > row_len {
             let mut cells = Vec::with_capacity(row_len as usize);
 
-            for (idx, keys) in self
-                .board
-                .rows
-                .get(self.ysel as usize)
-                .unwrap()
-                .keys
-                .iter()
-                .enumerate()
-            {
+            for (idx, keys) in row.keys.iter().enumerate() {
                 for _ in 0..keys.cells {
                     cells.push(idx as u32);
                 }

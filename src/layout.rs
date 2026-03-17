@@ -42,8 +42,6 @@ impl From<Vec<char>> for KeyRow {
     }
 }
 
-impl KeyRow {}
-
 pub struct QwertyLayout {
     pub(crate) rows: Vec<KeyRow>,
     pub(crate) shifted_rows: Vec<KeyRow>,
