@@ -188,13 +188,11 @@ impl Keyboard {
             self.handle_pressed()
         } else if released.s || released.e {
             self.handle_released()
-        } else if released.w {
-            if self.text.is_empty() {
-                State::JustCancelled
-            } else {
-                self.text.pop();
-                State::TextChanged
-            }
+        } else if pressed.w && !self.text.is_empty() {
+            self.text.pop();
+            State::TextChanged
+        } else if released.w && self.text.is_empty() {
+            State::JustCancelled
         } else if pressed.n {
             self.board.shifted = !self.board.shifted;
             State::Open
