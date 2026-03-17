@@ -152,17 +152,12 @@ impl Keyboard {
 
         if last_row_len > row_len {
             let mut cells = Vec::with_capacity(row_len as usize);
-
             for (idx, keys) in row.keys.iter().enumerate() {
                 for _ in 0..keys.cells {
                     cells.push(idx as u32);
                 }
             }
-
             self.xsel = *cells.get(self.xsel as usize).unwrap();
-        } else if last_row_len < row_len {
-            // TODO: better logic
-            self.xsel += 1;
         }
 
         if (self.xsel as i32) + xchg > row_len {
