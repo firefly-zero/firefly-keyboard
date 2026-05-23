@@ -11,7 +11,7 @@ use firefly_rust::*;
 static mut STATE: OnceCell<State> = OnceCell::new();
 
 struct State {
-    font: FileBuf,
+    font: FontBuf,
     keyboard: Keyboard,
     buttons: Buttons,
 }
@@ -24,7 +24,7 @@ fn get_state() -> &'static mut State {
 #[unsafe(no_mangle)]
 extern "C" fn boot() {
     let state = State {
-        font: load_file_buf("font").expect("could not load font!"),
+        font: load_file_buf("font").unwrap().into(),
         keyboard: Keyboard::new(Options::default()),
         buttons: read_buttons(Peer::COMBINED),
     };
@@ -50,17 +50,17 @@ extern "C" fn update() {
 extern "C" fn render() {
     let state = get_state();
     clear_screen(Color::Black);
-    let font = state.font.as_font();
+    let font = &state.font;
     if state.keyboard.is_open() {
-        state.keyboard.render(&font);
+        state.keyboard.render(font);
         let mut tmp = state.keyboard.text.clone();
         tmp.push('_');
-        draw_text(&tmp, &font, Point::new(4, 8), Color::White);
+        draw_text(&tmp, font, Point::new(4, 8), Color::White);
     } else {
         let text = format!(
             "current text: {}\n\npress E to open keyboard",
             state.keyboard.text,
         );
-        draw_text(&text, &font, Point::new(4, 8), Color::White);
+        draw_text(&text, font, Point::new(4, 8), Color::White);
     }
 }

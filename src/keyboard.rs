@@ -238,7 +238,7 @@ impl Keyboard {
     }
 
     /// Renders the keyboard.
-    pub fn render(&self, font: &Font) {
+    pub fn render<F: Font>(&self, font: &F) {
         if self.is_open {
             self.board.draw(self, font);
         }

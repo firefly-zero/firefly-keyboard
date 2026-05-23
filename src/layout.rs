@@ -174,7 +174,7 @@ impl QwertyLayout {
         );
     }
 
-    pub(crate) fn draw(&self, kbd: &Keyboard, font: &Font) {
+    pub(crate) fn draw<F: Font>(&self, kbd: &Keyboard, font: &F) {
         let rows = if self.shifted {
             &self.shifted_rows
         } else {
